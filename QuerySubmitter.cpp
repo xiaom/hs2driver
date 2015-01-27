@@ -18,6 +18,21 @@ using namespace apache::thrift::transport;
 using namespace apache::thrift::protocol;
 
 
+#ifdef _WIN32
+#define bswap_16                    _byteswap_ushort
+#define bswap_32                    _byteswap_ulong
+#define bswap_64                    _byteswap_uint64
+#elif defined(__linux__)
+#include <byteswap.h>   //for bswap_16,32,64
+#elif defined(__APPLE__)
+#include <libkern/OSByteOrder.h>
+#define bswap_16 OSSwapInt16
+#define bswap_32 OSSwapInt32
+#define bswap_64 OSSwapInt64
+#endif
+
+
+
 string LogTTableSchemaToString(TTableSchema& schema);
 string LogTStatusToString(apache::hive::service::cli::thrift::TStatus& in_status);
 
@@ -150,7 +165,110 @@ public:
     }
 };
 
+class Decoder {
+    static void decode(TRowSet& resultBuffer);
+};
+void Decoder::decode(TRowSet& rs) {
 
+    try{
+
+        // handling the empty encoded result set that server sends back (temporarily)
+        std::vector<apache::hive::service::cli::thrift::TColumn> old_col = rs.columns;
+        if (rs.columns.size() != 0){
+            rs.columns.clear();
+        }
+
+        int cols = rs.enColumns.size() + old_col.size();
+
+        const uint8_t* compressorBitmap = (const uint8_t*)rs.compressorBitmap.c_str();
+
+        uint8_t mask[8] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+
+        std::vector<apache::hive::service::cli::thrift::TEnColumn>::iterator itr = rs.enColumns.begin();
+        std::vector<apache::hive::service::cli::thrift::TColumn>::iterator col_itr = old_col.begin();
+        for (int i = 0; i<cols; i++)
+        {
+            int index = i / 8;
+            int offset = i % 8;
+            if ((compressorBitmap[index] & mask[offset]) == (uint8_t)0){
+                rs.columns.push_back(*col_itr);
+                col_itr++;
+                continue;
+            }
+            apache::hive::service::cli::thrift::TColumn tColumn;
+            if (itr->compressorName == "PIN"){
+                switch (itr->type)
+                {
+
+                case TTypeId::INT_TYPE:
+                {
+                      apache::hive::service::cli::thrift::TI32Column tI32Column;
+                      
+                      tI32Column.values.reserve(rs.columns[0].i32Val.values.size());
+                      int size = itr->size;
+                      const uint8_t* encodedData = (const uint8_t*)itr->enData.c_str();
+                      uint8_t* ptr = (uint8_t*)encodedData;
+
+                      ptr++;
+                      int bitsPerLen = *(uint32_t *)ptr;
+                      ptr += 4;
+                      int min_len = *(uint32_t *)ptr;
+                      ptr += 4;
+
+                      unsigned int lenmask = ~(-1 << bitsPerLen);
+                      int valPos = 9 + (size * bitsPerLen + 7) / 8;
+                      unsigned int lenAcc = 0;
+                      unsigned int valAcc = 0;
+                      int lenBits = 0;
+                      int valBits = 0;
+                      int valWid = 0;
+                      unsigned int value = 0;
+
+                      for (int i = 0; i < size; i++) {
+                          for (; lenBits < bitsPerLen; lenBits += 8) {
+                              lenAcc |= *ptr++ << lenBits;
+                          }
+                          valWid = (lenAcc & lenmask) + min_len - 1;
+                          lenAcc >>= bitsPerLen;
+                          lenBits -= bitsPerLen;
+
+                          if (valWid == -1){
+                              tI32Column.values.push_back(0);
+                              continue;
+                          }
+
+                          for (; valBits < valWid; valBits += 8) {
+                              valAcc |= encodedData[valPos++] << valBits;
+                          }
+                          valBits -= valWid;
+
+                          value = valAcc & ~(-1 << valWid) ^ (1 << valWid);
+
+                          valAcc = (unsigned int)encodedData[valPos - 1] >> (8 - valBits);
+                          value = value & 1 ? 1 + (value >> 1) : -(value >> 1);
+                          tI32Column.values.push_back((int32_t)value);
+                      }
+
+                      tI32Column.__set_nulls(itr->nulls);
+                      tColumn.__set_i32Val(tI32Column);
+                      tColumn.__isset.i32Val = true;
+                      break;
+                }
+                default:
+                    throw "Not Implemented Decoding Type";
+                }
+                rs.columns.push_back(tColumn);
+                itr++;
+            }
+        }
+        rs.enColumns.clear();
+        rs.__isset.columns = true;
+        rs.__isset.enColumns = false;
+    }
+    catch (...){
+        throw "exception while decoding data";
+    }
+}
 
 // The TStatusCode names.
 static const char* TSTATUS_CODE_NAMES[] =
