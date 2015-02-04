@@ -2,9 +2,20 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <iterator>
 #include <algorithm>
+#include <map>
 #include <boost/shared_ptr.hpp>
+#include <boost/program_options.hpp>
+
+// http://stackoverflow.com/questions/9018443/using-thrift-c-library-in-xcode
+#ifndef _WIN32
+#include <boost/cstdint.hpp>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#endif
+
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/protocol/TBinaryProtocol.h>
@@ -16,7 +27,7 @@ using namespace std;
 using namespace apache::hive::service::cli::thrift;
 using namespace apache::thrift::transport;
 using namespace apache::thrift::protocol;
-
+namespace po = boost::program_options;
 
 #ifdef _WIN32
 #define bswap_16                    _byteswap_ushort
@@ -66,9 +77,16 @@ ostream& operator<< (ostream& os, const TColumn& col){
     os << "]";
     return os;
 }
+
+class Decoder {
+public:
+    static void decode(TRowSet& resultBuffer);
+};
+
 class HS2Client {
     TCLIServiceClient* m_client;
     TSessionHandle m_SessionHandle;
+    Decoder m_decoder;
 
 public:
     HS2Client(const string& host, const int port){
@@ -90,9 +108,15 @@ public:
         TOpenSessionReq openSessionReq;
         TOpenSessionResp openSessionResp;
 
+        openSessionReq.__set_client_protocol(TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8);
+        //openSessionReq.__set_username("cloudera");
+        std::ifstream ifs("D:\\hive-workspace\\hs2driver\\compressorInfo.json");
+        std::stringstream compressorInfo;
+        compressorInfo << ifs.rdbuf();
+        std::map<std::string, std::string> conf;
+        conf["CompressorInfo"] = compressorInfo.str();
+        openSessionReq.__set_configuration(conf);
 
-        openSessionReq.__set_client_protocol(TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V7);
-        openSessionReq.__set_username("cloudera");
 
         m_client->OpenSession(openSessionResp, openSessionReq);
 
@@ -105,7 +129,9 @@ public:
         }
 
         m_SessionHandle = openSessionResp.sessionHandle;
-        return true;
+        return (openSessionResp.status.statusCode == TStatusCode::SUCCESS_STATUS) ||
+            (openSessionResp.status.statusCode == TStatusCode::SUCCESS_WITH_INFO_STATUS);
+
     }
 
     bool SubmitQuery(const string& in_query, TOperationHandle& out_OpHandle){
@@ -143,17 +169,18 @@ public:
         std::cerr << "Fetch Result Status: " << LogTStatusToString(fetchResultsResp.status) << endl;
         std::cerr << "hasMoreRows: " << fetchResultsResp.hasMoreRows << endl;
 
+        bool compressed = true;
+
+        if (compressed){
+            // do the decoding here
+            m_decoder.decode(fetchResultsResp.results);
+        }
         const vector<TColumn>& cols = fetchResultsResp.results.columns;
         size_t nColumns = cols.size();
-        ostream_iterator<TColumn> t(std::cout, "\n");
         for (size_t i = 0; i < nColumns; i++) {
-            std::cout << cols[i] << endl;
+            std::cout << cols[i] << std::endl;
         }
 
-
-        //copy(cols.begin(), cols.end(), t);
-        //copy(cols.begin(), cols.end(), ostream_iterator<TColumn>(std::cout, ", "));
-    
     }
 
     void CloseSession(){
@@ -165,14 +192,11 @@ public:
     }
 };
 
-class Decoder {
-    static void decode(TRowSet& resultBuffer);
-};
 void Decoder::decode(TRowSet& rs) {
 
     try{
 
-        // handling the empty encoded result set that server sends back (temporarily)
+        // clean the old column and decoding the encoded columns into the old column
         std::vector<apache::hive::service::cli::thrift::TColumn> old_col = rs.columns;
         if (rs.columns.size() != 0){
             rs.columns.clear();
@@ -184,8 +208,8 @@ void Decoder::decode(TRowSet& rs) {
 
         uint8_t mask[8] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
-        std::vector<apache::hive::service::cli::thrift::TEnColumn>::iterator itr = rs.enColumns.begin();
-        std::vector<apache::hive::service::cli::thrift::TColumn>::iterator col_itr = old_col.begin();
+        std::vector<TEnColumn>::iterator itr = rs.enColumns.begin();
+        std::vector<TColumn>::iterator col_itr = old_col.begin();
         for (int i = 0; i<cols; i++)
         {
             int index = i / 8;
@@ -203,7 +227,6 @@ void Decoder::decode(TRowSet& rs) {
                 case TTypeId::INT_TYPE:
                 {
                       apache::hive::service::cli::thrift::TI32Column tI32Column;
-                      
                       tI32Column.values.reserve(rs.columns[0].i32Val.values.size());
                       int size = itr->size;
                       const uint8_t* encodedData = (const uint8_t*)itr->enData.c_str();
@@ -317,31 +340,61 @@ string LogTStatusToString(apache::hive::service::cli::thrift::TStatus& in_status
     return ss.str();
 }
 
-
 // HardyTCLIServiceClient is a wrapper
 int main(int argc, char* argv[]) {
 
-    string host = "192.168.202.101";
-    int port = 10000;
-    HS2Client client(host, port);
+    try{
+        // Sample
+        // ./querySubmitter --host localhost --query "show tables;"
+        // On Boost::ProgramOptions http://www.boost.org/doc/libs/1_57_0/doc/html/program_options/tutorial.html
+        po::options_description desc("Options");
+        desc.add_options()
+            ("host", "hostname")
+            ("port", "port number, default 10000")
+            ("query", "queries")
+        ;
 
-    client.OpenSession();
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
 
-
-    const char* queries[] = {
-        "select * from bigint_table",
-        "show tables"
-    };
-    size_t sz = sizeof(queries) / sizeof(char*);
-    for (size_t i = 0; i < sz; i++) {
-        std::cerr << "Running query " << queries[i] << std::endl;
-        TOperationHandle opHandle;
-        bool bSuccess = client.SubmitQuery(queries[i], opHandle);
-        if (bSuccess) {
-            client.GetResultsetMetaData(opHandle);
-            client.FetchResultSet(opHandle);
+        //string host = "localhost";
+        string host = "192.168.33.10";
+        if (vm.count("host")){
+            host = vm["host"].as<string>();
         }
+
+        int port = 10000;
+        if (vm.count("port")){
+            port = vm["port"].as<int>();
+        }
+        HS2Client client(host, port);
+
+        bool bSessionSuccess = client.OpenSession();
+
+        if (bSessionSuccess){
+            const char* queries[] = {
+                "select * from Integer_table"
+            };
+            size_t sz = sizeof(queries) / sizeof(char*);
+            for (size_t i = 0; i < sz; i++) {
+                std::cerr << "Running query " << queries[i] << std::endl;
+                TOperationHandle opHandle;
+                bool bSuccess = client.SubmitQuery(queries[i], opHandle);
+                if (bSuccess) {
+                    client.GetResultsetMetaData(opHandle);
+                    client.FetchResultSet(opHandle);
+                }
+            }
+        }
+        else {
+            std::cerr << "Error while opening session" << std::endl;
+        }
+        client.CloseSession();
     }
-    client.CloseSession();
+    catch (exception& e){
+        cerr << "Error: " << e.what() << endl;
+        return -1;
+    }
 	return 0;
 }

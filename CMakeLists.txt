@@ -17,7 +17,7 @@
 #
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
+set(CMAKE_CXX_FLAGS "-stdlib=libc++")
 project(hs2driver)
 
 message("Project Dir = ${PROJECT_SOURCE_DIR}")
@@ -36,7 +36,7 @@ else()
     set(Boost_USE_STATIC_RUNTIME OFF)
 endif()
 
-find_package(Boost 1.53.0 REQUIRED COMPONENTS regex system date_time chrono thread)
+find_package(Boost 1.53.0 REQUIRED COMPONENTS regex system date_time chrono thread program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
 if(CMAKE_COMPILER_IS_GNUCXX)
