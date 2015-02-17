@@ -1,0 +1,32 @@
+{
+	"INT_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	},
+	"TINYINT_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	},
+	"SMALLINT_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	},
+	"BIGINT_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	},
+	"DOUBLE_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	},
+	"STRING_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	}
+}

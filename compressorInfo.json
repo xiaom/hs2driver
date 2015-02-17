@@ -1,0 +1,7 @@
+{
+	"INT_TYPE": {
+		"vendor": "simba",
+		"compressorSet": "PIN", 
+		"entryClass": "ColumnCompressorImpl"
+	}
+}
