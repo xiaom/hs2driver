@@ -1,0 +1,3 @@
+#!/bin/sh
+rm -f /tmp/hs2driver.log
+docker build -t xiaom/hs2driver . &> /tmp/hs2driver.log
