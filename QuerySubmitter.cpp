@@ -8,12 +8,14 @@
 #include <map>
 #include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
-
+#include <cstdint>
 // http://stackoverflow.com/questions/9018443/using-thrift-c-library-in-xcode
 #ifndef _WIN32
-#include <boost/cstdint.hpp>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #endif
 
 #include <thrift/transport/TSocket.h>
@@ -352,8 +354,11 @@ int main(int argc, char *argv[]) {
         // On Boost::ProgramOptions
         // http://www.boost.org/doc/libs/1_57_0/doc/html/program_options/tutorial.html
         po::options_description desc("Options");
-        desc.add_options()("host", "hostname")(
-            "port", "port number, default 10000")("query", "queries");
+        desc.add_options()
+            ("help", "Produce help messages")
+            ("host", po::value<std::string>(), "hostname")
+            ("port", po::value<int>(), "port number, default 10000")
+            ("query", po::value<std::string>(), "queries");
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -362,6 +367,7 @@ int main(int argc, char *argv[]) {
         // string host = "localhost";
         string host = "192.168.33.10";
         if (vm.count("host")) {
+            std::cerr << "Host = " << vm["host"].as<string>() << std::endl;
             host = vm["host"].as<string>();
         }
 

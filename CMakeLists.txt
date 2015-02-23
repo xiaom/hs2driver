@@ -17,7 +17,6 @@
 #
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_CXX_FLAGS "-stdlib=libc++")
 project(hs2driver)
 
 message("Project Dir = ${PROJECT_SOURCE_DIR}")
@@ -41,7 +40,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     #set(CMAKE_EXE_LINKER_FLAGS "-lrt -lpthread")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x")
 endif()
 if(MSVC)
     set(CMAKE_CXX_FLAGS "/EHsc")
