@@ -111,7 +111,11 @@ class HS2Client {
         openSessionReq.__set_client_protocol(
             TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8);
         // openSessionReq.__set_username("cloudera");
-        std::ifstream ifs("D:\\hive-workspace\\hs2driver\\compressorInfo.json");
+        std::ifstream ifs("compressorInfo.json");
+        if(!ifs.good()) {
+            std::cerr << "Cannot open configuration file: compressorInfo.json" << endl;
+            return false;
+        }
         std::stringstream compressorInfo;
         compressorInfo << ifs.rdbuf();
         std::map<std::string, std::string> conf;
