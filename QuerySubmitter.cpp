@@ -44,9 +44,16 @@ namespace po = boost::program_options;
 #define bswap_64 OSSwapInt64
 #endif
 
+
+// Is the given column is comprressed
+inline bool isCompressed(const string& compressorBitmap, size_t col) {
+    const uint8_t * pBitmap = (const uint8_t *)compressorBitmap.c_str();
+    static uint8_t mask[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+    return pBitmap[col/8] & mask[col % 8];
+}
+
 string LogTTableSchemaToString(TTableSchema &schema);
-string
-LogTStatusToString(apache::hive::service::cli::thrift::TStatus &in_status);
+string LogTStatusToString(apache::hive::service::cli::thrift::TStatus &in_status);
 
 ostream &operator<<(ostream &os, const TColumn &col) {
     os << "[";
@@ -79,15 +86,25 @@ ostream &operator<<(ostream &os, const TColumn &col) {
     return os;
 }
 
-class Decoder {
+/**
+* Interface for decompressor
+*/
+class IDecompressor {
+public:
+    virtual ~IDecompressor() {}
+    virtual void Decompress(const TEnColumn& in_col, TColumn& out_col) = 0;
+};
+
+class SimpleDecompressor:  public IDecompressor{
   public:
-    static void decode(TRowSet &resultBuffer);
+    virtual void Decompress(const TEnColumn& in_col, TColumn& out_col);
 };
 
 class HS2Client {
     TCLIServiceClient *m_client;
     TSessionHandle m_SessionHandle;
-    Decoder m_decoder;
+
+    SimpleDecompressor m_decompressor;
 
   public:
     HS2Client(const string &host, const int port) {
@@ -127,7 +144,7 @@ class HS2Client {
         std::cerr << "Open Session Status: "
                   << LogTStatusToString(openSessionResp.status) << endl;
         std::cerr << "Server Protocol Version: "
-                  << openSessionResp.serverProtocolVersion << endl;
+                  << openSessionResp.serverProtocolVersion + 1 << endl;
 
         if (openSessionReq.client_protocol !=
             openSessionResp.serverProtocolVersion) {
@@ -183,16 +200,27 @@ class HS2Client {
                   << LogTStatusToString(fetchResultsResp.status) << endl;
         std::cerr << "hasMoreRows: " << fetchResultsResp.hasMoreRows << endl;
 
-        bool compressed = true;
 
-        if (compressed) {
-            // do the decoding here
-            m_decoder.decode(fetchResultsResp.results);
-        }
         const vector<TColumn> &cols = fetchResultsResp.results.columns;
-        size_t nColumns = cols.size();
+        const vector<TEnColumn> &encols = fetchResultsResp.results.enColumns;
+        size_t nColumns = cols.size() + encols.size();
+
+        size_t idx_col = 0;     // index for TColumn
+        size_t idx_encol = 0;   // index for TEnColumn
         for (size_t i = 0; i < nColumns; i++) {
-            std::cout << cols[i] << std::endl;
+
+            if (isCompressed(fetchResultsResp.results.compressorBitmap, i)){
+                TColumn out_col;
+                m_decompressor.Decompress(encols[idx_encol], out_col);
+                std::cout << "Column " << i+1  << std::endl;
+                std::cout <<  out_col << std::endl;
+                idx_encol++;
+
+            } else {
+                std::cout << "Column " << i+1 << std::endl;
+                std::cout << cols[idx_col] << std::endl;
+                idx_col++;
+            }
         }
     }
 
@@ -206,108 +234,71 @@ class HS2Client {
     }
 };
 
-void Decoder::decode(TRowSet &rs) {
+void SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn& out_column) {
 
-    try {
+    // @todo: remove compressorName from TEnColumn?
+    assert(in_column.compressorName == "PIN" && in_column.type == TTypeId::INT_TYPE);
 
-        // clean the old column and decoding the encoded columns into the old
-        // column
-        std::vector<apache::hive::service::cli::thrift::TColumn> old_col =
-            rs.columns;
-        if (rs.columns.size() != 0) {
-            rs.columns.clear();
+    out_column.__isset.i32Val = true;
+    out_column.i32Val.values.reserve(in_column.size);
+    out_column.i32Val.__set_nulls(in_column.nulls);
+
+    apache::hive::service::cli::thrift::TI32Column& tI32Column = out_column.i32Val;
+
+    int size = in_column.size;
+
+    const uint8_t *encodedData = (const uint8_t *)in_column.enData.c_str();
+
+    uint8_t *ptr = (uint8_t *)encodedData;
+
+    ptr++;
+    uint32_t bitsPerLen = *(uint32_t *)ptr;
+
+    ptr += 4;
+    uint32_t min_len = *(uint32_t *)ptr;
+
+    ptr += 4;
+    unsigned int lenmask = ~(-1 << bitsPerLen);
+
+    int valPos = 9 + (size * bitsPerLen + 7) / 8;
+
+    unsigned int lenAcc = 0;
+    unsigned int valAcc = 0;
+    int lenBits = 0;
+    int valBits = 0;
+    int valWid = 0;
+    unsigned int value = 0;
+
+    for (int i = 0; i < size; i++) {
+
+        for (; lenBits < bitsPerLen; lenBits += 8) {
+            lenAcc |= *ptr++ << lenBits;
+        }
+        valWid = (lenAcc & lenmask) + min_len - 1;
+        lenAcc >>= bitsPerLen;
+        lenBits -= bitsPerLen;
+
+        if (valWid == -1) {
+            tI32Column.values.push_back(0);
+            continue;
         }
 
-        int cols = rs.enColumns.size() + old_col.size();
-
-        const uint8_t *compressorBitmap =
-            (const uint8_t *)rs.compressorBitmap.c_str();
-
-        uint8_t mask[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-
-        std::vector<TEnColumn>::iterator itr = rs.enColumns.begin();
-        std::vector<TColumn>::iterator col_itr = old_col.begin();
-        for (int i = 0; i < cols; i++) {
-            int index = i / 8;
-            int offset = i % 8;
-            if ((compressorBitmap[index] & mask[offset]) == (uint8_t)0) {
-                rs.columns.push_back(*col_itr);
-                col_itr++;
-                continue;
-            }
-            apache::hive::service::cli::thrift::TColumn tColumn;
-            if (itr->compressorName == "PIN") {
-                switch (itr->type) {
-
-                case TTypeId::INT_TYPE: {
-                    apache::hive::service::cli::thrift::TI32Column tI32Column;
-                    tI32Column.values.reserve(
-                        rs.columns[0].i32Val.values.size());
-                    int size = itr->size;
-                    const uint8_t *encodedData =
-                        (const uint8_t *)itr->enData.c_str();
-                    uint8_t *ptr = (uint8_t *)encodedData;
-
-                    ptr++;
-                    int bitsPerLen = *(uint32_t *)ptr;
-                    ptr += 4;
-                    int min_len = *(uint32_t *)ptr;
-                    ptr += 4;
-
-                    unsigned int lenmask = ~(-1 << bitsPerLen);
-                    int valPos = 9 + (size * bitsPerLen + 7) / 8;
-                    unsigned int lenAcc = 0;
-                    unsigned int valAcc = 0;
-                    int lenBits = 0;
-                    int valBits = 0;
-                    int valWid = 0;
-                    unsigned int value = 0;
-
-                    for (int i = 0; i < size; i++) {
-                        for (; lenBits < bitsPerLen; lenBits += 8) {
-                            lenAcc |= *ptr++ << lenBits;
-                        }
-                        valWid = (lenAcc & lenmask) + min_len - 1;
-                        lenAcc >>= bitsPerLen;
-                        lenBits -= bitsPerLen;
-
-                        if (valWid == -1) {
-                            tI32Column.values.push_back(0);
-                            continue;
-                        }
-
-                        for (; valBits < valWid; valBits += 8) {
-                            valAcc |= encodedData[valPos++] << valBits;
-                        }
-                        valBits -= valWid;
-
-                        value = valAcc & ~(-1 << valWid) ^ (1 << valWid);
-
-                        valAcc = (unsigned int)encodedData[valPos - 1] >>
-                                 (8 - valBits);
-                        value = value & 1 ? 1 + (value >> 1) : -(value >> 1);
-                        tI32Column.values.push_back((int32_t)value);
-                    }
-
-                    tI32Column.__set_nulls(itr->nulls);
-                    tColumn.__set_i32Val(tI32Column);
-                    tColumn.__isset.i32Val = true;
-                    break;
-                }
-                default:
-                    throw "Not Implemented Decoding Type";
-                }
-                rs.columns.push_back(tColumn);
-                itr++;
-            }
+        for (; valBits < valWid; valBits += 8) {
+            valAcc |= encodedData[valPos++] << valBits;
         }
-        rs.enColumns.clear();
-        rs.__isset.columns = true;
-        rs.__isset.enColumns = false;
-    } catch (...) {
-        throw "exception while decoding data";
+        valBits -= valWid;
+
+        value = valAcc & ~(-1 << valWid) ^ (1 << valWid);
+
+        valAcc = (unsigned int)encodedData[valPos - 1] >> (8 - valBits);
+
+        value = value & 1 ? 1 + (value >> 1) : -(value >> 1);
+        tI32Column.values.push_back((int32_t)value);
     }
+
 }
+
+
 
 // The TStatusCode names.
 static const char *TSTATUS_CODE_NAMES[] = {
@@ -350,7 +341,7 @@ LogTStatusToString(apache::hive::service::cli::thrift::TStatus &in_status) {
 }
 
 // HardyTCLIServiceClient is a wrapper
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
 
     try {
         // Sample
