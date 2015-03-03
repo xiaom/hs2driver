@@ -8,6 +8,7 @@
 #include <map>
 #include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstdint>
 // http://stackoverflow.com/questions/9018443/using-thrift-c-library-in-xcode
 #ifndef _WIN32
@@ -23,7 +24,6 @@
 #include <thrift/protocol/TBinaryProtocol.h>
 
 #include "TCLIService.h"
-#include "TCLIService_types.h"
 
 using namespace std;
 using namespace apache::hive::service::cli::thrift;
@@ -39,6 +39,7 @@ namespace po = boost::program_options;
 #include <byteswap.h> //for bswap_16,32,64
 #elif defined(__APPLE__)
 #include <libkern/OSByteOrder.h>
+
 #define bswap_16 OSSwapInt16
 #define bswap_32 OSSwapInt32
 #define bswap_64 OSSwapInt64
@@ -104,10 +105,10 @@ class HS2Client {
     TCLIServiceClient *m_client;
     TSessionHandle m_SessionHandle;
 
-    SimpleDecompressor m_decompressor;
+    IDecompressor* m_decompressor;
 
   public:
-    HS2Client(const string &host, const int port) {
+    HS2Client(const string &host, const int port):m_decompressor(NULL){
         boost::shared_ptr<TTransport> trans(new TSocket(host, port));
         trans.reset(new TBufferedTransport(trans));
         try {
@@ -118,6 +119,18 @@ class HS2Client {
         }
         boost::shared_ptr<TBinaryProtocol> protocol(new TBinaryProtocol(trans));
         m_client = new TCLIServiceClient(protocol);
+    }
+
+    // One approach to implement stragery pattern: http://sourcemaking.com/design_patterns/strategy/cpp/1
+    void SetDecompressor(const string& compressorName) {
+
+        if(m_decompressor!=NULL) delete m_decompressor;
+        if (compressorName == "PIN") {
+            m_decompressor = new SimpleDecompressor();
+        }
+        else {
+            std::cerr << "Unknown compressor " << compressorName << std::endl;
+        }
     }
 
     // return false if failed
@@ -211,7 +224,7 @@ class HS2Client {
 
             if (isCompressed(fetchResultsResp.results.compressorBitmap, i)){
                 TColumn out_col;
-                m_decompressor.Decompress(encols[idx_encol], out_col);
+                m_decompressor->Decompress(encols[idx_encol], out_col);
                 std::cout << "Column " << i+1  << std::endl;
                 std::cout <<  out_col << std::endl;
                 idx_encol++;
@@ -324,9 +337,9 @@ LogTStatusToString(apache::hive::service::cli::thrift::TStatus &in_status) {
     ss << "\n  statusCode=" << TSTATUS_CODE_NAMES[in_status.statusCode];
     ss << "\n  infoMessages=";
 
-    for (std::vector<string>::iterator currInfoMsg =
-             in_status.infoMessages.begin();
-         in_status.infoMessages.end() != currInfoMsg; ++currInfoMsg) {
+    for (std::vector<std::string>::iterator currInfoMsg = in_status.infoMessages.begin();
+         in_status.infoMessages.end() != currInfoMsg;
+         ++currInfoMsg) {
         ss << "\"" << *currInfoMsg << "\"";
     }
     ss << "\n  sqlState=" << in_status.sqlState;
@@ -344,6 +357,10 @@ LogTStatusToString(apache::hive::service::cli::thrift::TStatus &in_status) {
 int main(int argc, const char *argv[]) {
 
     try {
+
+        string host, compressor, query;
+        int port;
+
         // Sample
         // ./querySubmitter --host localhost --query "show tables;"
         // On Boost::ProgramOptions
@@ -351,40 +368,40 @@ int main(int argc, const char *argv[]) {
         po::options_description desc("Options");
         desc.add_options()
             ("help", "Produce help messages")
-            ("host", po::value<std::string>(), "hostname")
-            ("port", po::value<int>(), "port number, default 10000")
-            ("query", po::value<std::string>(), "queries");
+            ("host", po::value<std::string>(&host)->default_value("localhost"), "hostname")
+            ("port", po::value<int>(&port)->default_value(10000), "port number")
+            ("compressor", po::value<std::string>(&compressor)->default_value("PIN"), "compressor name")
+            ("query", po::value<std::string>(&query)->default_value("select * from Integer_table"), "queries");
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
 
-        // string host = "localhost";
-        string host = "192.168.33.10";
-        if (vm.count("host")) {
-            std::cerr << "Host = " << vm["host"].as<string>() << std::endl;
-            host = vm["host"].as<string>();
-        }
-
-        int port = 10000;
-        if (vm.count("port")) {
-            port = vm["port"].as<int>();
+        if (vm.count("help")) {
+            std::cout << desc << std::endl;
+            return 1;
         }
         HS2Client client(host, port);
+        client.SetDecompressor(compressor);
 
         bool bSessionSuccess = client.OpenSession();
-
         if (bSessionSuccess) {
-            const char *queries[] = {"select * from Integer_table"};
-            size_t sz = sizeof(queries) / sizeof(char *);
-            for (size_t i = 0; i < sz; i++) {
-                std::cerr << "Running query " << queries[i] << std::endl;
+
+
+            std::vector<std::string> queries;
+            boost::trim(query);
+            boost::split(queries, query, boost::is_any_of(";"));
+
+            for (size_t i = 0; i < queries.size(); i++) {
+
+                std::cerr << "Running query: " << queries[i] << std::endl;
                 TOperationHandle opHandle;
                 bool bSuccess = client.SubmitQuery(queries[i], opHandle);
                 if (bSuccess) {
                     client.GetResultsetMetaData(opHandle);
                     client.FetchResultSet(opHandle);
                 }
+
             }
         } else {
             std::cerr << "Error while opening session" << std::endl;
