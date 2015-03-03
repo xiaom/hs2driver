@@ -3,10 +3,10 @@ A C++ Query Submitter for HiveServer2
 
 ## Run with docker container
 
-Assume the lastest version of [Docker](https://docs.docker.com/installation/) and [Fig](http://www.fig.sh/install.html) are installed.
+Assume the lastest version of [Docker](https://docs.docker.com/installation/) and [Docker-compose](https://docs.docker.com/compose/) are installed.
 
 ```sh
-$ fig build # build the images
-$ fig up    # start a container
+$ docker-compose build # build the images
+$ docker-compose up    # start a container
 ```
 
