@@ -71,6 +71,11 @@ set (TCLISERVICE_CPP_FILES
     TCLIServiceClient/TCLIService_types.cpp
     )
 
+set (SRC_FILES
+    HS2Client.cpp
+    SimpleCompressor.cpp
+    utils.cpp)
+
 # TARGETS
 add_executable(QuerySubmitter QuerySubmitter.cpp ${TCLISERVICE_CPP_FILES})
 
