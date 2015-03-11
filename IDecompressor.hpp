@@ -2,19 +2,11 @@
 #define HS_IDECOMPRESSOR
 
 
-namespace apache {
-    namespace hive {
-        namespace service {
-            namespace cli {
+namespace apache { namespace hive { namespace service { namespace cli {
                 namespace thrift {
                     class TEnColumn;
                     class TColumn;
-                }
-            }
-
-        }
-    }
-}
+} } } } }
 /**
 * Interface for decompressor
 */

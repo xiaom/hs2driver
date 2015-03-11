@@ -1,9 +1,20 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
-string LogTTableSchemaToString(TTableSchema &schema);
-string LogTStatusToString(apache::hive::service::cli::thrift::TStatus &in_status);
 
-ostream &operator<<(ostream &os, const TColumn &col) {
+namespace apache { namespace hive { namespace service { namespace cli { namespace thrift {
+    class TTableSchema;
+    class TSessionHandle;
+} } } } }
+
+
+std::string LogTTableSchemaToString
+        (apache::hive::service::cli::thrift::TTableSchema
+        &schema);
+std::string LogTStatusToString(apache::hive::service::cli::thrift::TStatus
+&in_status);
+
+ostream &operator<<(std::ostream &os, const
+apache::hive::service::cli::thrift::TColumn &col) {
     os << "[";
     if (col.__isset.byteVal) {
         copy(col.binaryVal.values.begin(), col.binaryVal.values.end(),

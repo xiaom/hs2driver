@@ -17,10 +17,34 @@
 
 #include "TCLIService.h"
 #include "IDecompressor.hpp"
+#include <TCLIService_types.h>
+#include "TCLIService.h"
+#include "IDecompressor.hpp"
 
 using namespace apache::hive::service::cli::thrift;
 using namespace apache::thrift::transport;
 using namespace apache::thrift::protocol;
+
+
+
+class HS2ClientImpl: public HS2Client{
+    HS2ClientImpl(const std::string &host, const int port);
+    void SetDecompressor(const std::string& compressorName);
+
+    // return false if failed
+    bool OpenSession();
+
+    bool SubmitQuery(const std::string &in_query, OpHandle& out_OpHandle);
+    void GetResultsetMetaData(const OpHandle& opHandle);
+    void FetchResultSet(const OpHandle&  opHandle);
+    void CloseSession();
+
+private:
+    apache::hive::service::cli::thrift::TCLIServiceClient *m_client;
+    apache::hive::service::cli::thrift::TSessionHandle m_SessionHandle;
+    IDecompressor* m_decompressor;
+};
+
 
 
 // Is the given column is comprressed
@@ -30,8 +54,46 @@ inline bool isCompressed(const string& compressorBitmap, size_t col) {
     return pBitmap[col/8] & mask[col % 8];
 }
 
+/**
+*
+* HS2Client: wrapper on top of HS2ClientImpl
+*/
 
 HS2Client::HS2Client(const string &host, const int port):m_decompressor(NULL){
+    m_client = new HS2ClientImpl(host, port);
+}
+
+HS2Client::~HS2Client() {
+    delete m_client;
+}
+
+bool HS2Client::OpenSession() {
+    return m_client->OpenSession();
+}
+
+bool HS2Client::SubmitQuery(const std::string &in_query, OpHandle&
+out_OpHandle) {
+    return m_client->SubmitQuery(in_query, out_OpHandle);
+}
+void HS2Client::GetResultsetMetaData(const OpHandle& opHandle){
+
+    return m_client->GetResultsetMetaData(opHandle);
+}
+void FetchResultSet(const OpHandle&  opHandle){
+
+    return m_client->FetchResultSet(opHandle);
+}
+bool CloseSession() {
+    return m_client->CloseSession();
+}
+
+
+/**
+*
+* HS2ClientImpl
+*/
+
+HS2ClientImpl::HS2ClientImpl(const std::string &host, const int port) {
     boost::shared_ptr<TTransport> trans(new TSocket(host, port));
     trans.reset(new TBufferedTransport(trans));
     try {
@@ -42,10 +104,11 @@ HS2Client::HS2Client(const string &host, const int port):m_decompressor(NULL){
     }
     boost::shared_ptr<TBinaryProtocol> protocol(new TBinaryProtocol(trans));
     m_client = new TCLIServiceClient(protocol);
+
 }
 
 // One approach to implement stragery pattern: http://sourcemaking.com/design_patterns/strategy/cpp/1
-void HS2Client::SetDecompressor(const string& compressorName) {
+void HS2ClientImpl::SetDecompressor(const string& compressorName) {
 
     if(m_decompressor!=NULL) delete m_decompressor;
     if (compressorName == "PIN") {
@@ -57,7 +120,7 @@ void HS2Client::SetDecompressor(const string& compressorName) {
 }
 
 // return false if failed
-bool HS2Client::OpenSession() {
+bool HS2ClientImpl::OpenSession() {
     TOpenSessionReq openSessionReq;
     TOpenSessionResp openSessionResp;
 
@@ -96,7 +159,8 @@ bool HS2Client::OpenSession() {
                     TStatusCode::SUCCESS_WITH_INFO_STATUS);
 }
 
-bool HS2Client::SubmitQuery(const string &in_query, TOperationHandle &out_OpHandle) {
+bool HS2ClientImpl::SubmitQuery(const string &in_query, TOperationHandle
+&out_OpHandle) {
 
     // execute the query
     TExecuteStatementReq execStmtReq;
@@ -113,7 +177,7 @@ bool HS2Client::SubmitQuery(const string &in_query, TOperationHandle &out_OpHand
                     TStatusCode::SUCCESS_WITH_INFO_STATUS);
 }
 
-void HS2Client::GetResultsetMetaData(const TOperationHandle &opHandle) {
+void HS2ClientImpl::GetResultsetMetaData(const TOperationHandle &opHandle) {
     TGetResultSetMetadataReq metadataReq;
     TGetResultSetMetadataResp metadataResp;
     metadataReq.__set_operationHandle(opHandle);
@@ -124,7 +188,7 @@ void HS2Client::GetResultsetMetaData(const TOperationHandle &opHandle) {
             << LogTTableSchemaToString(metadataResp.schema) << endl;
 }
 
-void HS2Client::FetchResultSet(const TOperationHandle &opHandle) {
+void HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
     // fetch results, blocking call
     TFetchResultsReq fetchResultsReq;
     TFetchResultsResp fetchResultsResp;
@@ -161,11 +225,12 @@ void HS2Client::FetchResultSet(const TOperationHandle &opHandle) {
     }
 }
 
-void HS2Client::CloseSession() {
+bool HS2ClientImpl::CloseSession() {
     TCloseSessionReq closeSessionReq;
     TCloseSessionResp closeSessionResp;
     closeSessionReq.__set_sessionHandle(m_SessionHandle);
     m_client->CloseSession(closeSessionResp, closeSessionReq);
     std::cerr << "Close Session: "
             << LogTStatusToString(closeSessionResp.status) << endl;
+    return true;
 }

@@ -27,3 +27,9 @@ Debug/
 *.exe
 *.out
 *.app
+
+*.user
+
+*.filters
+
+*.vcxproj
