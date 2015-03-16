@@ -1,11 +1,14 @@
-#include "IDecompressor.hpp"
+#include "Decompressor.hpp"
+#include <iostream>
+#include "TCLIService.h"
+using namespace apache::hive::service::cli::thrift;
 
+class SimpleDecompressor;
 
-class SimpleDecompressor:  public IDecompressor{
+class SimpleDecompressor:  public Decompressor{
   public:
     virtual void Decompress(const TEnColumn& in_col, TColumn& out_col);
 };
-
 
 
 void SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn& out_column) {
@@ -72,3 +75,13 @@ void SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn& out_col
 
 }
 
+
+Decompressor* Decompressor::Create(const std::string& name){
+     if (name == "PIN") {
+         return new SimpleDecompressor();
+    }
+    else {
+         std::cerr << "Unknown compressor " << name << std::endl;
+         return NULL;
+    }
+}

@@ -1,45 +1,31 @@
-#include <string>
-#include <vector>
+
+#include "HS2Client.hpp"
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include "HS2Client.hpp"
-#include "utils.hpp"
-class SimpleDecompressor;
+#include <AddressBook/AddressBook.h>
 
 using namespace std;
 namespace po = boost::program_options;
 
-
-#ifdef _WIN32
-#define bswap_16 _byteswap_ushort
-#define bswap_32 _byteswap_ulong
-#define bswap_64 _byteswap_uint64
-#elif defined(__linux__)
-#include <byteswap.h> //for bswap_16,32,64
-#elif defined(__APPLE__)
-#include <libkern/OSByteOrder.h>
-
-#define bswap_16 OSSwapInt16
-#define bswap_32 OSSwapInt32
-#define bswap_64 OSSwapInt64
-#endif
-
-
-// HardyTCLIServiceClient is a wrapper
 int main(int argc, const char *argv[]) {
 
     try {
 
-        string host, compressor, query;
-        int port;
 
-        // Sample
-        // ./querySubmitter --host localhost --query "show tables;"
-        // On Boost::ProgramOptions
-        // http://www.boost.org/doc/libs/1_57_0/doc/html/program_options/tutorial.html
+        /**
+        * Parse command option
+        *
+        * querySubmitter
+        *       --host [host]
+        *       --port [port]
+        *       --query [query]
+        *       --compressor [compressor]
+        */
+        std::string host, compressor, query;
+        int port;
         po::options_description desc("Options");
         desc.add_options()
             ("help", "Produce help messages")
@@ -56,32 +42,55 @@ int main(int argc, const char *argv[]) {
             std::cout << desc << std::endl;
             return 1;
         }
-        HS2Client client(host, port);
-        client.SetDecompressor(compressor);
 
-        bool bSessionSuccess = client.OpenSession();
-        if (bSessionSuccess) {
+        // Create a new client and set compressor
+        HS2Client* client = HS2Client::Create(host, port);
+        if (!client->SetDecompressor(compressor)) {
+            std::cerr << "Unknown decompressor: " << compressor << std::endl;
+            delete client;
+            return -1;
+        }
 
+        if (client->OpenSession()) {
 
+            // parse query string into queries
             std::vector<std::string> queries;
             boost::trim(query);
             boost::split(queries, query, boost::is_any_of(";"));
 
+            // run query one by one
             for (size_t i = 0; i < queries.size(); i++) {
 
                 std::cerr << "Running query: " << queries[i] << std::endl;
                 OpHandle opHandle;
-                bool bSuccess = client.SubmitQuery(queries[i], opHandle);
-                if (bSuccess) {
-                    client.GetResultsetMetaData(opHandle);
-                    client.FetchResultSet(opHandle);
+                bool bSuccess = true;
+                bSuccess = client->SubmitQuery(queries[i], opHandle);
+                if (!bSuccess) {
+                    std::cerr << "Error while submitting query: " << queries[i]
+                            << std::endl;
+                    continue;
+                }
+
+                bSuccess = client->GetResultsetMetaData(opHandle);
+                if (!bSuccess){
+                    std::cerr << "Error while getting resultset metadata"
+                            << std::endl;
+                    continue;
+                }
+
+                bSuccess = client->FetchResultSet(opHandle);
+                if (!bSuccess) {
+                    std::cerr << "Error while getting result back: "
+                            << queries[i] << std::endl;
+                    continue;
                 }
 
             }
         } else {
             std::cerr << "Error while opening session" << std::endl;
         }
-        client.CloseSession();
+        client->CloseSession();
+        delete client;
     } catch (exception &e) {
         cerr << "Error: " << e.what() << endl;
         return -1;

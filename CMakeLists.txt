@@ -73,10 +73,11 @@ set (TCLISERVICE_CPP_FILES
 
 set (SRC_FILES
     HS2Client.cpp
-    SimpleCompressor.cpp
+    SimpleDecompressor.cpp
     utils.cpp)
 
 # TARGETS
-add_executable(QuerySubmitter QuerySubmitter.cpp ${TCLISERVICE_CPP_FILES})
+add_executable(QuerySubmitter QuerySubmitter.cpp ${TCLISERVICE_CPP_FILES}
+${SRC_FILES})
 
 target_link_libraries(QuerySubmitter ${Boost_LIBRARIES} ${THRIFT_LIBS})

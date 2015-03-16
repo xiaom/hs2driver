@@ -1,35 +1,33 @@
-#ifndef HS2CLIENT_HPP
-#define HS2CLIENT_HPP
+#ifndef _HS2DRIVER_HS2CLIENT_HPP_
+#define _HS2DRIVER_HS2CLIENT_HPP_
 
-class IDecompressor;
+#include "TCLIService.h"
 
-namespace apache { namespace hive { namespace service { namespace cli { namespace thrift {
-    class TSessionHandle;
-    class TOperationHandle;
-    class TCLIServiceClient;
-    class TSessionHandle;
-} } } } }
-
-typedef const apache::hive::service::cli::thrift::TOperationHandle OpHandle;
-
-class HS2ClientImpl;
+typedef apache::hive::service::cli::thrift::TOperationHandle OpHandle;
 
 class HS2Client{
 public:
-    HS2Client(const std::string &host, const int port);
-    ~HS2Client() {}
-    void SetDecompressor(const std::string& compressorName);
-    // return false if failed
-    bool OpenSession();
+    // Factory method
+    static HS2Client* Create(const std::string &host, const int port);
 
-    bool SubmitQuery(const std::string &in_query, OpHandle&
-    out_OpHandle);
-    void GetResultsetMetaData(const OpHandle& opHandle);
-    void FetchResultSet(const OpHandle&  opHandle) ;
-    bool CloseSession();
+    virtual ~HS2Client() {}
 
-private:
-    HS2ClientImpl* m_client;
+    // return false if error happens
+
+    virtual bool SetDecompressor(const std::string &compressorName) = 0;
+
+    virtual bool OpenSession() = 0;
+
+    virtual bool SubmitQuery(const std::string &in_query, OpHandle&
+    out_OpHandle) = 0;
+
+
+    virtual bool GetResultsetMetaData(const OpHandle& opHandle) = 0;
+
+    virtual bool FetchResultSet(const OpHandle&  opHandle) = 0;
+
+    virtual bool CloseSession() = 0;
+
 };
 
 

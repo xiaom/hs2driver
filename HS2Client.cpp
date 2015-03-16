@@ -1,7 +1,9 @@
 #include "HS2Client.hpp"
-#include <map>
-#include <boost/shared_ptr.hpp>
-#include <cstdint>
+
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
 // http://stackoverflow.com/questions/9018443/using-thrift-c-library-in-xcode
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -11,87 +13,79 @@
 #include <netinet/tcp.h>
 #endif
 
+/*
+// Try to fix the annoying warning in OS X due to THRIFT-2907
+#if defined(__APPLE__)
+    #if defined(ntohll)
+    #undef ntohl
+    #undef hnonll
+    #endif
+#endif
+*/
+
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 
-#include "TCLIService.h"
-#include "IDecompressor.hpp"
-#include <TCLIService_types.h>
-#include "TCLIService.h"
-#include "IDecompressor.hpp"
+#ifdef _WIN32
+#define bswap_16 _byteswap_ushort
+#define bswap_32 _byteswap_ulong
+#define bswap_64 _byteswap_uint64
+#elif defined(__linux__)
+#include <byteswap.h> //for bswap_16,32,64
+#elif defined(__APPLE__)
+#include <libkern/OSByteOrder.h>
+
+#define bswap_16 OSSwapInt16
+#define bswap_32 OSSwapInt32
+#define bswap_64 OSSwapInt64
+#endif
+
+/*
+namespace apache { namespace hive { namespace service { namespace cli { namespace thrift {
+    class TSessionHandle;
+    class TOperationHandle;
+    class TCLIServiceClient;
+    class TSessionHandle;
+} } } } }
+*/
+
+#include "Decompressor.hpp"
+#include "utils.hpp"
 
 using namespace apache::hive::service::cli::thrift;
 using namespace apache::thrift::transport;
 using namespace apache::thrift::protocol;
 
-
-
 class HS2ClientImpl: public HS2Client{
+public:
     HS2ClientImpl(const std::string &host, const int port);
-    void SetDecompressor(const std::string& compressorName);
-
-    // return false if failed
+    bool SetDecompressor(const std::string& compressorName);
     bool OpenSession();
-
     bool SubmitQuery(const std::string &in_query, OpHandle& out_OpHandle);
-    void GetResultsetMetaData(const OpHandle& opHandle);
-    void FetchResultSet(const OpHandle&  opHandle);
-    void CloseSession();
+    bool GetResultsetMetaData(const OpHandle& opHandle);
+    bool FetchResultSet(const OpHandle&  opHandle);
+    bool CloseSession();
 
 private:
-    apache::hive::service::cli::thrift::TCLIServiceClient *m_client;
-    apache::hive::service::cli::thrift::TSessionHandle m_SessionHandle;
-    IDecompressor* m_decompressor;
+    TCLIServiceClient *m_client;
+    TSessionHandle m_SessionHandle;
+    Decompressor* m_decompressor;
 };
 
 
 
 // Is the given column is comprressed
-inline bool isCompressed(const string& compressorBitmap, size_t col) {
+inline bool isCompressed(const std::string& compressorBitmap, size_t col) {
     const uint8_t * pBitmap = (const uint8_t *)compressorBitmap.c_str();
     static uint8_t mask[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     return pBitmap[col/8] & mask[col % 8];
 }
 
-/**
-*
-* HS2Client: wrapper on top of HS2ClientImpl
-*/
-
-HS2Client::HS2Client(const string &host, const int port):m_decompressor(NULL){
-    m_client = new HS2ClientImpl(host, port);
+HS2Client* HS2Client::Create(const std::string &host, const int port) {
+    return  new HS2ClientImpl(host, port);
 }
 
-HS2Client::~HS2Client() {
-    delete m_client;
-}
-
-bool HS2Client::OpenSession() {
-    return m_client->OpenSession();
-}
-
-bool HS2Client::SubmitQuery(const std::string &in_query, OpHandle&
-out_OpHandle) {
-    return m_client->SubmitQuery(in_query, out_OpHandle);
-}
-void HS2Client::GetResultsetMetaData(const OpHandle& opHandle){
-
-    return m_client->GetResultsetMetaData(opHandle);
-}
-void FetchResultSet(const OpHandle&  opHandle){
-
-    return m_client->FetchResultSet(opHandle);
-}
-bool CloseSession() {
-    return m_client->CloseSession();
-}
-
-
-/**
-*
-* HS2ClientImpl
-*/
 
 HS2ClientImpl::HS2ClientImpl(const std::string &host, const int port) {
     boost::shared_ptr<TTransport> trans(new TSocket(host, port));
@@ -99,24 +93,21 @@ HS2ClientImpl::HS2ClientImpl(const std::string &host, const int port) {
     try {
         trans->open();
     } catch (TTransportException &e) {
-        std::cerr << "Cannot open the socket: " << e.what() << endl;
+        std::cerr << "Cannot open the socket: " << e.what() << std::endl;
         exit(-1);
     }
     boost::shared_ptr<TBinaryProtocol> protocol(new TBinaryProtocol(trans));
     m_client = new TCLIServiceClient(protocol);
-
 }
 
 // One approach to implement stragery pattern: http://sourcemaking.com/design_patterns/strategy/cpp/1
-void HS2ClientImpl::SetDecompressor(const string& compressorName) {
+bool HS2ClientImpl::SetDecompressor(const std::string &compressorName) {
 
     if(m_decompressor!=NULL) delete m_decompressor;
-    if (compressorName == "PIN") {
-        m_decompressor = new SimpleDecompressor();
-    }
-    else {
-        std::cerr << "Unknown compressor " << compressorName << std::endl;
-    }
+    m_decompressor = Decompressor::Create(compressorName);
+    if(m_decompressor == NULL) return false;
+    else return true;
+
 }
 
 // return false if failed
@@ -127,10 +118,12 @@ bool HS2ClientImpl::OpenSession() {
     // @todo: query system table to get hive version and set protocol properly
     openSessionReq.__set_client_protocol(
             TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8);
-    // openSessionReq.__set_username("cloudera");
+
+    // @todo: json negotiation
     std::ifstream ifs("compressorInfo.json");
     if(!ifs.good()) {
-        std::cerr << "Cannot open configuration file: compressorInfo.json" << endl;
+        std::cerr << "Cannot open configuration file: compressorInfo.json" <<
+                std::endl;
         return false;
     }
     std::stringstream compressorInfo;
@@ -142,13 +135,13 @@ bool HS2ClientImpl::OpenSession() {
     m_client->OpenSession(openSessionResp, openSessionReq);
 
     std::cerr << "Open Session Status: "
-            << LogTStatusToString(openSessionResp.status) << endl;
+            << LogTStatusToString(openSessionResp.status) << std::endl;
     std::cerr << "Server Protocol Version: "
-            << openSessionResp.serverProtocolVersion + 1 << endl;
+            << openSessionResp.serverProtocolVersion + 1 << std::endl;
 
     if (openSessionReq.client_protocol !=
             openSessionResp.serverProtocolVersion) {
-        std::cerr << "ERROR: protocol version does not match" << endl;
+        std::cerr << "ERROR: protocol version does not match" << std::endl;
         return false;
     }
 
@@ -159,8 +152,8 @@ bool HS2ClientImpl::OpenSession() {
                     TStatusCode::SUCCESS_WITH_INFO_STATUS);
 }
 
-bool HS2ClientImpl::SubmitQuery(const string &in_query, TOperationHandle
-&out_OpHandle) {
+bool HS2ClientImpl::SubmitQuery(const std::string &in_query,
+        TOperationHandle &out_OpHandle) {
 
     // execute the query
     TExecuteStatementReq execStmtReq;
@@ -169,7 +162,7 @@ bool HS2ClientImpl::SubmitQuery(const string &in_query, TOperationHandle
     execStmtReq.__set_statement(in_query);
     m_client->ExecuteStatement(execStmtResp, execStmtReq);
     std::cerr << "Execute Statement Status: "
-            << LogTStatusToString(execStmtResp.status) << endl;
+            << LogTStatusToString(execStmtResp.status) << std::endl;
     out_OpHandle = execStmtResp.operationHandle;
     return (execStmtResp.status.statusCode ==
             TStatusCode::SUCCESS_STATUS) ||
@@ -177,18 +170,19 @@ bool HS2ClientImpl::SubmitQuery(const string &in_query, TOperationHandle
                     TStatusCode::SUCCESS_WITH_INFO_STATUS);
 }
 
-void HS2ClientImpl::GetResultsetMetaData(const TOperationHandle &opHandle) {
+bool HS2ClientImpl::GetResultsetMetaData(const TOperationHandle &opHandle) {
     TGetResultSetMetadataReq metadataReq;
     TGetResultSetMetadataResp metadataResp;
     metadataReq.__set_operationHandle(opHandle);
     m_client->GetResultSetMetadata(metadataResp, metadataReq);
     std::cerr << "Get Result Set Metadata Status: "
-            << LogTStatusToString(metadataResp.status) << endl;
+            << LogTStatusToString(metadataResp.status) << std::endl;
     std::cout << "Column Metadata: "
-            << LogTTableSchemaToString(metadataResp.schema) << endl;
+            << LogTTableSchemaToString(metadataResp.schema) << std::endl;
+    return  true;
 }
 
-void HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
+bool HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
     // fetch results, blocking call
     TFetchResultsReq fetchResultsReq;
     TFetchResultsResp fetchResultsResp;
@@ -198,12 +192,12 @@ void HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
     m_client->FetchResults(fetchResultsResp, fetchResultsReq);
 
     std::cerr << "Fetch Result Status: "
-            << LogTStatusToString(fetchResultsResp.status) << endl;
-    std::cerr << "hasMoreRows: " << fetchResultsResp.hasMoreRows << endl;
+            << LogTStatusToString(fetchResultsResp.status) << std::endl;
+    std::cerr << "hasMoreRows: " << fetchResultsResp.hasMoreRows << std::endl;
 
 
-    const vector<TColumn> &cols = fetchResultsResp.results.columns;
-    const vector<TEnColumn> &encols = fetchResultsResp.results.enColumns;
+    const std::vector<TColumn> &cols = fetchResultsResp.results.columns;
+    const std::vector<TEnColumn> &encols = fetchResultsResp.results.enColumns;
     size_t nColumns = cols.size() + encols.size();
 
     size_t idx_col = 0;     // index for TColumn
@@ -223,6 +217,7 @@ void HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
             idx_col++;
         }
     }
+    return true;
 }
 
 bool HS2ClientImpl::CloseSession() {
@@ -231,6 +226,6 @@ bool HS2ClientImpl::CloseSession() {
     closeSessionReq.__set_sessionHandle(m_SessionHandle);
     m_client->CloseSession(closeSessionResp, closeSessionReq);
     std::cerr << "Close Session: "
-            << LogTStatusToString(closeSessionResp.status) << endl;
+            << LogTStatusToString(closeSessionResp.status) << std::endl;
     return true;
 }
