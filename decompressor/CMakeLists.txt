@@ -1,0 +1,14 @@
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_CXX_FLAGS "-fPIC")
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "-fPIC")
+endif()
+
+set (DECOMPRESSOR_SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/SimpleDecompressor.cpp
+    )
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include )
+add_library(decompressor STATIC ${DECOMPRESSOR_SOURCE})

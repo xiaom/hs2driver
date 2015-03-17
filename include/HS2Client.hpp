@@ -1,7 +1,7 @@
 #ifndef _HS2DRIVER_HS2CLIENT_HPP_
 #define _HS2DRIVER_HS2CLIENT_HPP_
 
-#include "TCLIService.h"
+#include "TCLIService_types.h"
 
 typedef apache::hive::service::cli::thrift::TOperationHandle OpHandle;
 

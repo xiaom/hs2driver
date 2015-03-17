@@ -1,4 +1,5 @@
 #include "HS2Client.hpp"
+#include "TCLIService.h"
 
 #include <fstream>
 #include <sstream>
@@ -12,16 +13,6 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #endif
-
-/*
-// Try to fix the annoying warning in OS X due to THRIFT-2907
-#if defined(__APPLE__)
-    #if defined(ntohll)
-    #undef ntohl
-    #undef hnonll
-    #endif
-#endif
-*/
 
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TBufferTransports.h>

@@ -1,6 +1,7 @@
 #include "Decompressor.hpp"
 #include <iostream>
-#include "TCLIService.h"
+#include "TCLIService_types.h"
+
 using namespace apache::hive::service::cli::thrift;
 
 class SimpleDecompressor;
