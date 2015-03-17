@@ -1,5 +1,4 @@
 #include "Decompressor.hpp"
-#include <iostream>
 #include "TCLIService_types.h"
 
 using namespace apache::hive::service::cli::thrift;
@@ -82,7 +81,6 @@ Decompressor* Decompressor::Create(const std::string& name){
          return new SimpleDecompressor();
     }
     else {
-         std::cerr << "Unknown compressor " << name << std::endl;
          return NULL;
     }
 }
