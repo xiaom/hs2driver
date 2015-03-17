@@ -57,6 +57,25 @@ using namespace apache::hive::service::cli::thrift;
 using namespace apache::thrift::transport;
 using namespace apache::thrift::protocol;
 
+/**
+* Helper Inline Functions
+*/
+// Does the status code mean success?
+inline bool IsSucess(const TStatusCode::type& t) {
+    return (t==TStatusCode::SUCCESS_STATUS) ||
+            (t==TStatusCode::SUCCESS_WITH_INFO_STATUS);
+}
+
+// Is the given column is comprressed?
+inline bool isCompressed(const std::string& compressorBitmap, size_t col) {
+    const uint8_t * pBitmap = (const uint8_t *)compressorBitmap.c_str();
+    static uint8_t mask[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+    return pBitmap[col/8] & mask[col % 8];
+}
+
+/**
+* HS2Client Implementation
+*/
 class HS2ClientImpl: public HS2Client{
 public:
     HS2ClientImpl(const std::string &host, const int port);
@@ -75,19 +94,13 @@ private:
 
 
 
-// Is the given column is comprressed
-inline bool isCompressed(const std::string& compressorBitmap, size_t col) {
-    const uint8_t * pBitmap = (const uint8_t *)compressorBitmap.c_str();
-    static uint8_t mask[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-    return pBitmap[col/8] & mask[col % 8];
-}
-
 HS2Client* HS2Client::Create(const std::string &host, const int port) {
     return  new HS2ClientImpl(host, port);
 }
 
 
-HS2ClientImpl::HS2ClientImpl(const std::string &host, const int port) {
+HS2ClientImpl::HS2ClientImpl(const std::string &host, const int port)
+        : m_decompressor(NULL) {
     boost::shared_ptr<TTransport> trans(new TSocket(host, port));
     trans.reset(new TBufferedTransport(trans));
     try {
@@ -120,6 +133,7 @@ bool HS2ClientImpl::OpenSession() {
             TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8);
 
     // @todo: json negotiation
+    // @todo: validate json file format
     std::ifstream ifs("compressorInfo.json");
     if(!ifs.good()) {
         std::cerr << "Cannot open configuration file: compressorInfo.json" <<
@@ -164,10 +178,7 @@ bool HS2ClientImpl::SubmitQuery(const std::string &in_query,
     std::cerr << "Execute Statement Status: "
             << LogTStatusToString(execStmtResp.status) << std::endl;
     out_OpHandle = execStmtResp.operationHandle;
-    return (execStmtResp.status.statusCode ==
-            TStatusCode::SUCCESS_STATUS) ||
-            (execStmtResp.status.statusCode ==
-                    TStatusCode::SUCCESS_WITH_INFO_STATUS);
+    return IsSucess(execStmtResp.status.statusCode);
 }
 
 bool HS2ClientImpl::GetResultsetMetaData(const TOperationHandle &opHandle) {
@@ -179,7 +190,7 @@ bool HS2ClientImpl::GetResultsetMetaData(const TOperationHandle &opHandle) {
             << LogTStatusToString(metadataResp.status) << std::endl;
     std::cout << "Column Metadata: "
             << LogTTableSchemaToString(metadataResp.schema) << std::endl;
-    return  true;
+    return  IsSucess(metadataResp.status.statusCode);
 }
 
 bool HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
@@ -217,7 +228,7 @@ bool HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
             idx_col++;
         }
     }
-    return true;
+    return IsSucess(fetchResultsResp.status.statusCode);
 }
 
 bool HS2ClientImpl::CloseSession() {
@@ -227,5 +238,5 @@ bool HS2ClientImpl::CloseSession() {
     m_client->CloseSession(closeSessionResp, closeSessionReq);
     std::cerr << "Close Session: "
             << LogTStatusToString(closeSessionResp.status) << std::endl;
-    return true;
+    return IsSucess(closeSessionResp.status.statusCode);
 }

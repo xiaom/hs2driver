@@ -22,8 +22,8 @@ project(hs2driver)
 message("Project Dir = ${PROJECT_SOURCE_DIR}")
 message("Source Dir = ${CMAKE_SOURCE_DIR} ")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmakeModules/")
-
 # Find Boost
 if(MSVC)
     set(Boost_USE_STATIC_LIBS ON)
@@ -77,6 +77,10 @@ set (SRC_FILES
     utils.cpp)
 
 # TARGETS
+
+# copy the file into the build directory
+execute_process(COMMAND cp ${CMAKE_SOURCE_DIR}/compressorInfo.json ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/)
+
 add_executable(QuerySubmitter QuerySubmitter.cpp ${TCLISERVICE_CPP_FILES}
 ${SRC_FILES})
 

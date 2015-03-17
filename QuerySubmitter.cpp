@@ -92,7 +92,7 @@ int main(int argc, const char *argv[]) {
         client->CloseSession();
         delete client;
     } catch (exception &e) {
-        cerr << "Error: " << e.what() << endl;
+        std::cerr << "Error: " << e.what() << endl;
         return -1;
     }
     return 0;
