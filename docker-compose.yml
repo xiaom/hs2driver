@@ -1,5 +1,3 @@
 # the query submitter client
-c:
+client:
     build: .
-    volumes:
-        - ".:/code"
