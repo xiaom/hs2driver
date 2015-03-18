@@ -1,2 +1,5 @@
-querysubmitter:
+# the query submitter client
+c:
     build: .
+    volumes:
+        - ".:/code"

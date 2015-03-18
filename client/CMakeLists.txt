@@ -1,9 +1,5 @@
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "-fPIC")
-endif()
-
-if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_C_FLAGS "-fPIC")
+    set(CMAKE_CXX_FLAGS "-fPIC -std=c++0x" )
 endif()
 
 set (HS2CLIENT_SRC_FILES
@@ -15,4 +11,4 @@ set (HS2CLIENT_SRC_FILES
     )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include )
-add_library(hs2client STATIC ${HS2CLIENT_SRC_FILES} )
+add_library(hs2client SHARED ${HS2CLIENT_SRC_FILES} )

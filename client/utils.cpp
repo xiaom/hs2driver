@@ -5,7 +5,8 @@
 #include "utils.hpp"
 #include <iostream>
 #include <sstream>
-#include "TCLIService.h"
+#include <iterator>
+#include "TCLIService_types.h"
 using namespace apache::hive::service::cli::thrift;
 
 std::ostream &operator<<(std::ostream &os, const

@@ -1,9 +1,9 @@
 #include "HS2Client.hpp"
-#include "TCLIService.h"
 
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cstdint>
 
 // http://stackoverflow.com/questions/9018443/using-thrift-c-library-in-xcode
 #ifndef _WIN32
@@ -41,6 +41,7 @@ namespace apache { namespace hive { namespace service { namespace cli { namespac
 } } } } }
 */
 
+#include "TCLIService.h"
 #include "Decompressor.hpp"
 #include "utils.hpp"
 
