@@ -9,6 +9,14 @@
 using namespace std;
 namespace po = boost::program_options;
 
+// check whether given string is an empty query
+inline bool IsEmptyQuery(const std::string& q) {
+    for(int i = 0; i< q.size() ; i++){
+        if (!isspace(q[i])) return false;
+    }
+    return true;
+}
+
 int main(int argc, const char *argv[]) {
 
     try {
@@ -25,13 +33,17 @@ int main(int argc, const char *argv[]) {
         */
         std::string host, compressor, query;
         int port;
-        po::options_description desc("Options");
+        po::options_description desc(
+                "Usage: qh [--host  host-name] [--port port-name] [--compressor compressor-name] --query query-string"
+                "\n\nOptions"
+                );
+
         desc.add_options()
-            ("help", "Produce help messages")
-            ("host", po::value<std::string>(&host)->default_value("localhost"), "hostname")
-            ("port", po::value<int>(&port)->default_value(10000), "port number")
-            ("compressor", po::value<std::string>(&compressor)->default_value("PIN"), "compressor name")
-            ("query", po::value<std::string>(&query)->default_value("select * from Integer_table"), "queries");
+            ("help", "Help on args options")
+            ("host", po::value<std::string>(&host)->default_value("localhost"), "HiveServer2 hostname/IP address")
+            ("port", po::value<int>(&port)->default_value(10000), "HiveServer2 port number")
+            ("compressor", po::value<std::string>(&compressor)->default_value("PIN"), "Compressor name")
+            ("query", po::value<std::string>(&query)->default_value("show tables"), "Queries, seperated by semi-colon");
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -60,7 +72,8 @@ int main(int argc, const char *argv[]) {
             // run query one by one
             for (size_t i = 0; i < queries.size(); i++) {
 
-                std::cerr << "Running query: " << queries[i] << std::endl;
+                if ( IsEmptyQuery(queries[i]) ) continue;
+                std::cout << "[Query]: " << queries[i] << std::endl;
                 OpHandle opHandle;
                 bool bSuccess = true;
                 bSuccess = client->SubmitQuery(queries[i], opHandle);

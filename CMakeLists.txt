@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 2.6)
 
 project(hs2driver)
 
-# turn rpath off by default
-SET(CMAKE_SKIP_RPATH  TRUE)
-
 message("Project Dir = ${PROJECT_SOURCE_DIR}")
 message("Source Dir = ${CMAKE_SOURCE_DIR} ")
 
@@ -16,9 +13,10 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmakeModules/")
+set(CMAKE_MACOSX_RPATH ${CMAKE_CURRENT_BINARY_DIR})
 
 # Find Boost
-find_package(Boost 1.53.0 REQUIRED COMPONENTS regex system date_time chrono thread program_options)
+find_package(Boost 1.54.0 REQUIRED COMPONENTS regex system date_time chrono thread program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 message("Boost_INCLUDE_DIRS: " ${Boost_INCLUDE_DIRS})
 message("Boost_LIBRARIES: " ${Boost_LIBRARIES})
@@ -35,6 +33,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/client)
 
 # qh is short for QuerySubmitter for Hive. 
 add_executable(qh examples/QuerySubmitter.cpp)
-target_link_libraries(qh ${Boost_LIBRARIES} hs2client ${THRIFT_LIBS} decompressor)
+target_link_libraries(qh ${Boost_LIBRARIES} ${THRIFT_LIBS} hs2client decompressor)
 # Copy the compressorInfo.json file into the build directory
 execute_process(COMMAND cp ${CMAKE_SOURCE_DIR}/compressorInfo.json ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/)
+

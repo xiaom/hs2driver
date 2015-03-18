@@ -12,3 +12,6 @@ set (HS2CLIENT_SRC_FILES
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include )
 add_library(hs2client SHARED ${HS2CLIENT_SRC_FILES} )
+target_link_libraries(hs2client decompressor ${THRIFT_LIBS})
+install(TARGETS hs2client DESTINATION lib)
+
