@@ -18,7 +18,7 @@ website](https://thrift.apache.org/docs/install/).
 
 `hs2driver` is also shipped
 with a Dockerfile, which encapluse all dependencies for quickly testing. See the
-section [Run with Docker Containers](#Run with Docker Containers) for more
+section [Run with Docker Containers](#run-with-docker-containers) for more
 details.
 
 Installation
