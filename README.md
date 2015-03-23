@@ -5,16 +5,19 @@ A C++ Query Submitter for HiveServer2
 What is it?
 ===========
 
-`hs2driver` is a tool that submitting queries to HiveServer2 with compressor
-enabled and consuming results.
+`hs2driver` is a tool that submits queries to HiveServer2 with compressor
+enabled and consumes query results.
 
 Dependencies
 ============
 
-`hs2driver` requires gcc 4.8+, cmake 2.8+, thrift 0.9.0 and boost 1.54+. The
-instrution of building thrift library is describe in [the thrift
-website](https://thrift.apache.org/docs/install/). `hs2driver` is also shipped
-with a Dockerfile which encapluse all dependencies for quickly testing. See the
+`hs2driver` requires gcc 4.8+, cmake 2.8+, boost 1.54+, and thrift 0.9.0. 
+
+For gcc, cmake and boost, you can easily install them via package management systems in Linux/OS X platforms. The instrution of building thrift library is described in [the thrift
+website](https://thrift.apache.org/docs/install/). 
+
+`hs2driver` is also shipped
+with a Dockerfile, which encapluse all dependencies for quickly testing. See the
 section [Run with Docker Containers](#Run with Docker Containers) for more
 details.
 
@@ -33,7 +36,7 @@ make
 How to use
 ==========
 
-The program generated is called `qh`, which is short for query submitter for HiveServer2.
+The command generated is called `qh`, which is short for **q**uery submitter for **H**iveServer2.
 
 ```
 Usage: qh [--host  host-name] [--port port-name] [--compressor compressor-name] --query query-string
@@ -63,14 +66,13 @@ $ docker-compose build # build the images
 It will build a docker image called `hs2driver_client`.
 
 
-To run a docker container and use the query submitter,  just add
-`docker-compose run client` before `qh` command:
+To use the query submitter,  just add `docker-compose run client` before `qh` command:
 
 ```sh
 $ docker-compose run client qh [arguments]
 ```
 
-**Notes.** If you run hiveserver2 container on your localhost in OS X, the
-hiveserver2-ip should be the ip of boot2docker vm.  You can use `boot2docker
-ip` to get it.
+**Notes.** If you run HiveServer2 container in OS X with boot2docker. The
+HiveServer2 IP address should be the ip of boot2docker vm, which can be obtained by running `boot2docker
+ip`.
 
