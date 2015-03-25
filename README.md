@@ -9,7 +9,7 @@ enabled and consumes query results.
 
 It can be used for testing compress techniques for [real-time ResultSet compression protocol](https://github.com/simbatech/hive-slick/wiki/%5BJIRA%5D-Proposal).
 
-For how to develop a decompressor, please see the file called [TUTORIAL.md](TUTORIAL.md).
+For how to develop a decompressor, please see the file called [GUIDE.md](GUIDE.md).
 
 # Dependencies
 
