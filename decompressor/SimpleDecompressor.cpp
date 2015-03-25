@@ -1,5 +1,6 @@
 #include "Decompressor.hpp"
 #include "TCLIService_types.h"
+#include <iostream>
 
 using namespace apache::hive::service::cli::thrift;
 
@@ -7,24 +8,40 @@ class SimpleDecompressor;
 
 class SimpleDecompressor:  public Decompressor{
   public:
-    virtual void Decompress(const TEnColumn& in_col, TColumn& out_col);
+    virtual bool Decompress(const TEnColumn& in_col, TColumn& out_col);
+  private:
+    // do the decoding job: turn binary `enData` into integers
+    void decode(const std::string &enData, int size, TI32Column &tI32Column);
 };
 
 
-void SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn& out_column) {
+bool SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn&
+out_column) {
 
     // @todo: remove compressorName from TEnColumn?
     assert(in_column.compressorName == "PIN" && in_column.type == TTypeId::INT_TYPE);
 
-    out_column.__isset.i32Val = true;
-    out_column.i32Val.values.reserve(in_column.size);
-    out_column.i32Val.__set_nulls(in_column.nulls);
+    switch(in_column.type) {
+        case TTypeId::INT_TYPE:
+            out_column.__isset.i32Val = true;
+            out_column.i32Val.__set_nulls(in_column.nulls);
+            decode(in_column.enData, in_column.size, out_column.i32Val);
+            break;
+        default:
+            std::cerr << "Decompressor is not implemented for the type: " <<
+                    in_column.type << std::endl;
+            return false;
+    }
+    return true;
+}
 
-    apache::hive::service::cli::thrift::TI32Column& tI32Column = out_column.i32Val;
+void SimpleDecompressor::decode(
+        const std::string& enData,
+        int size,
+        TI32Column &tI32Column) {
 
-    int size = in_column.size;
-
-    const uint8_t *encodedData = (const uint8_t *)in_column.enData.c_str();
+    tI32Column.values.reserve(size);
+    const uint8_t *encodedData = (const uint8_t *)enData.c_str();
 
     uint8_t *ptr = (uint8_t *)encodedData;
 
@@ -72,12 +89,11 @@ void SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn& out_col
         value = value & 1 ? 1 + (value >> 1) : -(value >> 1);
         tI32Column.values.push_back((int32_t)value);
     }
-
 }
 
 
 Decompressor* Decompressor::Create(const std::string& name){
-     if (name == "PIN") {
+    if (name == "PIN") {
          return new SimpleDecompressor();
     }
     else {

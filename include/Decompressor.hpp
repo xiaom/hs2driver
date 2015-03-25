@@ -15,7 +15,8 @@ class Decompressor {
 public:
     static Decompressor* Create(const std::string& name);
     virtual ~Decompressor() {}
-    virtual void Decompress(
+    // return false if in_col cannot be decompressed
+    virtual bool Decompress(
             const apache::hive::service::cli::thrift::TEnColumn& in_col,
             apache::hive::service::cli::thrift::TColumn& out_col) = 0;
 };
