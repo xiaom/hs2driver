@@ -35,3 +35,4 @@ Debug/
 *.vcxproj
 
 tags
+build/*
