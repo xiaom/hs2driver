@@ -4,9 +4,9 @@
 
 using namespace apache::hive::service::cli::thrift;
 
-class SimpleDecompressor;
+class IntegerDecompressor;
 
-class SimpleDecompressor:  public Decompressor{
+class IntegerDecompressor :  public Decompressor{
   public:
     virtual bool Decompress(const TEnColumn& in_col, TColumn& out_col);
   private:
@@ -15,7 +15,7 @@ class SimpleDecompressor:  public Decompressor{
 };
 
 
-bool SimpleDecompressor::Decompress(const TEnColumn& in_column, TColumn&
+bool IntegerDecompressor::Decompress(const TEnColumn& in_column, TColumn&
 out_column) {
 
     // @todo: remove compressorName from TEnColumn?
@@ -35,7 +35,7 @@ out_column) {
     return true;
 }
 
-void SimpleDecompressor::decode(
+void IntegerDecompressor::decode(
         const std::string& enData,
         int size,
         TI32Column &tI32Column) {
@@ -94,7 +94,7 @@ void SimpleDecompressor::decode(
 
 Decompressor* Decompressor::Create(const std::string& name){
     if (name == "PIN") {
-         return new SimpleDecompressor();
+         return new IntegerDecompressor();
     }
     else {
          return NULL;
