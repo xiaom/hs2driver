@@ -1,7 +1,7 @@
 # Guide on How to Write a Decompressor
 
 
-The `Decompressor` interface is defined in `include/Decompressor.hpp`:
+The `Decompressor` interface is defined in `include/Decompressor.cpp`:
 
 ```cpp
 class Decompressor {
