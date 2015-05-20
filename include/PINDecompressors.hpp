@@ -1,3 +1,6 @@
+#ifndef HS_PINDECOMPRESSOR
+#define HS_PINDECOMPRESSOR
+
 #include "Decompressor.hpp"
 #include "TCLIService_types.h"
 
@@ -11,4 +14,4 @@ class PINDecompressors :  public Decompressor{
     void decode(const std::string &enData, int size, TI32Column &tI32Column);
 };
 
-
+#endif

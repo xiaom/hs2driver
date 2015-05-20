@@ -3,7 +3,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 set (DECOMPRESSOR_SOURCE
-    ${CMAKE_CURRENT_SOURCE_DIR}/PINDecompressors.cpp ${CMAKE_CURRENT_SOURCE_DIR}/Decompressor.cpp
+    Decompressor.cpp PINDecompressors.cpp
     )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include )

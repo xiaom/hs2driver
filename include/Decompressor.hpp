@@ -1,5 +1,5 @@
-#ifndef HS_IDECOMPRESSOR
-#define HS_IDECOMPRESSOR
+#ifndef HS_DECOMPRESSOR
+#define HS_DECOMPRESSOR
 
 #include <string>
 namespace apache { namespace hive { namespace service { namespace cli {
