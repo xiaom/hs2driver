@@ -1,25 +1,15 @@
 #include "Decompressor.hpp"
+#include "PINDecompressors.hpp"
 #include "TCLIService_types.h"
 #include <iostream>
 
 using namespace apache::hive::service::cli::thrift;
 
-class IntegerDecompressor;
-
-class IntegerDecompressor :  public Decompressor{
-  public:
-    virtual bool Decompress(const TEnColumn& in_col, TColumn& out_col);
-  private:
-    // do the decoding job: turn binary `enData` into integers
-    void decode(const std::string &enData, int size, TI32Column &tI32Column);
-};
-
-
-bool IntegerDecompressor::Decompress(const TEnColumn& in_column, TColumn&
+bool PINDecompressors::Decompress(const TEnColumn& in_column, TColumn&
 out_column) {
 
     // @todo: remove compressorName from TEnColumn?
-    assert(in_column.compressorName == "PIN" && in_column.type == TTypeId::INT_TYPE);
+    assert(in_column.compressorName == "PIN");
 
     switch(in_column.type) {
         case TTypeId::INT_TYPE:
@@ -35,7 +25,7 @@ out_column) {
     return true;
 }
 
-void IntegerDecompressor::decode(
+void PINDecompressors::decode(
         const std::string& enData,
         int size,
         TI32Column &tI32Column) {
@@ -87,15 +77,5 @@ void IntegerDecompressor::decode(
 
         value = value & 1 ? 1 + (value >> 1) : -(value >> 1);
         tI32Column.values.push_back((int32_t)value);
-    }
-}
-
-
-Decompressor* Decompressor::Create(const std::string& name){
-    if (name == "PIN") {
-         return new IntegerDecompressor();
-    }
-    else {
-         return NULL;
     }
 }
