@@ -39,22 +39,21 @@ void IntegerDecompressor::decode(
         const std::string& enData,
         int size,
         TI32Column &tI32Column) {
-
     tI32Column.values.reserve(size);
     const uint8_t *encodedData = (const uint8_t *)enData.c_str();
 
     uint8_t *ptr = (uint8_t *)encodedData;
 
     ptr++;
-    uint32_t bitsPerLen = *(uint32_t *)ptr;
+    uint32_t bitsPerLen = *(uint8_t *)ptr;
 
-    ptr += 4;
-    uint32_t min_len = *(uint32_t *)ptr;
+    ptr += 1;
+    uint32_t min_len = *(uint8_t *)ptr;
 
-    ptr += 4;
+    ptr += 1;
     unsigned int lenmask = ~(-1 << bitsPerLen);
 
-    int valPos = 9 + (size * bitsPerLen + 7) / 8;
+    int valPos = 3 + (size * bitsPerLen + 7) / 8;
 
     unsigned int lenAcc = 0;
     unsigned int valAcc = 0;
