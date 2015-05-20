@@ -31,6 +31,7 @@ To build it, under the root of the project directory, run the following commands
 
 ```bash
 mkdir build
+cd build
 cmake ..
 make
 ```
