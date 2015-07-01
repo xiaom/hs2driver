@@ -210,7 +210,7 @@ bool HS2ClientImpl::FetchResultSet(const TOperationHandle &opHandle) {
         if (isCompressed(fetchResultsResp.results.compressorBitmap, i)){
             TColumn out_col;
             if (m_decompressor->Decompress(encols[idx_encol], out_col)) {
-                std::cout << "Column " << i + 1 << std::endl;
+                std::cout << "Decompressed Column " << i + 1 << std::endl;
                 std::cout << out_col << std::endl;
             } else {
                 std::cout << "Column " << i + 1 << " cannot be "
