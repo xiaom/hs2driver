@@ -18,7 +18,8 @@ int _kTProtocolVersionValues[] = {
   TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V5,
   TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V6,
   TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V7,
-  TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8
+  TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8,
+  TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V9
 };
 const char* _kTProtocolVersionNames[] = {
   "HIVE_CLI_SERVICE_PROTOCOL_V1",
@@ -28,9 +29,10 @@ const char* _kTProtocolVersionNames[] = {
   "HIVE_CLI_SERVICE_PROTOCOL_V5",
   "HIVE_CLI_SERVICE_PROTOCOL_V6",
   "HIVE_CLI_SERVICE_PROTOCOL_V7",
-  "HIVE_CLI_SERVICE_PROTOCOL_V8"
+  "HIVE_CLI_SERVICE_PROTOCOL_V8",
+  "HIVE_CLI_SERVICE_PROTOCOL_V9"
 };
-const std::map<int, const char*> _TProtocolVersion_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(8, _kTProtocolVersionValues, _kTProtocolVersionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+const std::map<int, const char*> _TProtocolVersion_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(9, _kTProtocolVersionValues, _kTProtocolVersionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kTTypeIdValues[] = {
   TTypeId::BOOLEAN_TYPE,
@@ -52,7 +54,9 @@ int _kTTypeIdValues[] = {
   TTypeId::NULL_TYPE,
   TTypeId::DATE_TYPE,
   TTypeId::VARCHAR_TYPE,
-  TTypeId::CHAR_TYPE
+  TTypeId::CHAR_TYPE,
+  TTypeId::INTERVAL_YEAR_MONTH_TYPE,
+  TTypeId::INTERVAL_DAY_TIME_TYPE
 };
 const char* _kTTypeIdNames[] = {
   "BOOLEAN_TYPE",
@@ -74,9 +78,11 @@ const char* _kTTypeIdNames[] = {
   "NULL_TYPE",
   "DATE_TYPE",
   "VARCHAR_TYPE",
-  "CHAR_TYPE"
+  "CHAR_TYPE",
+  "INTERVAL_YEAR_MONTH_TYPE",
+  "INTERVAL_DAY_TIME_TYPE"
 };
-const std::map<int, const char*> _TTypeId_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(20, _kTTypeIdValues, _kTTypeIdNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+const std::map<int, const char*> _TTypeId_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(22, _kTTypeIdValues, _kTTypeIdNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kTStatusCodeValues[] = {
   TStatusCode::SUCCESS_STATUS,
@@ -4310,10 +4316,10 @@ void swap(TGetInfoResp &a, TGetInfoResp &b) {
   swap(a.infoValue, b.infoValue);
 }
 
-const char* TCompileReq::ascii_fingerprint = "4CDA19909D21B7D9907F85E3387EAB27";
-const uint8_t TCompileReq::binary_fingerprint[16] = {0x4C,0xDA,0x19,0x90,0x9D,0x21,0xB7,0xD9,0x90,0x7F,0x85,0xE3,0x38,0x7E,0xAB,0x27};
+const char* TExecuteStatementReq::ascii_fingerprint = "FED75DB77E66D76EC1939A51FB0D96FA";
+const uint8_t TExecuteStatementReq::binary_fingerprint[16] = {0xFE,0xD7,0x5D,0xB7,0x7E,0x66,0xD7,0x6E,0xC1,0x93,0x9A,0x51,0xFB,0x0D,0x96,0xFA};
 
-uint32_t TCompileReq::read(::apache::thrift::protocol::TProtocol* iprot) {
+uint32_t TExecuteStatementReq::read(::apache::thrift::protocol::TProtocol* iprot) {
 
   uint32_t xfer = 0;
   std::string fname;
@@ -4374,204 +4380,6 @@ uint32_t TCompileReq::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
-      default:
-        xfer += iprot->skip(ftype);
-        break;
-    }
-    xfer += iprot->readFieldEnd();
-  }
-
-  xfer += iprot->readStructEnd();
-
-  if (!isset_sessionHandle)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_statement)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
-  return xfer;
-}
-
-uint32_t TCompileReq::write(::apache::thrift::protocol::TProtocol* oprot) const {
-  uint32_t xfer = 0;
-  xfer += oprot->writeStructBegin("TCompileReq");
-
-  xfer += oprot->writeFieldBegin("sessionHandle", ::apache::thrift::protocol::T_STRUCT, 1);
-  xfer += this->sessionHandle.write(oprot);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("statement", ::apache::thrift::protocol::T_STRING, 2);
-  xfer += oprot->writeString(this->statement);
-  xfer += oprot->writeFieldEnd();
-
-  if (this->__isset.confOverlay) {
-    xfer += oprot->writeFieldBegin("confOverlay", ::apache::thrift::protocol::T_MAP, 3);
-    {
-      xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->confOverlay.size()));
-      std::map<std::string, std::string> ::const_iterator _iter144;
-      for (_iter144 = this->confOverlay.begin(); _iter144 != this->confOverlay.end(); ++_iter144)
-      {
-        xfer += oprot->writeString(_iter144->first);
-        xfer += oprot->writeString(_iter144->second);
-      }
-      xfer += oprot->writeMapEnd();
-    }
-    xfer += oprot->writeFieldEnd();
-  }
-  xfer += oprot->writeFieldStop();
-  xfer += oprot->writeStructEnd();
-  return xfer;
-}
-
-void swap(TCompileReq &a, TCompileReq &b) {
-  using ::std::swap;
-  swap(a.sessionHandle, b.sessionHandle);
-  swap(a.statement, b.statement);
-  swap(a.confOverlay, b.confOverlay);
-  swap(a.__isset, b.__isset);
-}
-
-const char* TCompileResp::ascii_fingerprint = "02A075A0FF88D3A172916D8F23C7B286";
-const uint8_t TCompileResp::binary_fingerprint[16] = {0x02,0xA0,0x75,0xA0,0xFF,0x88,0xD3,0xA1,0x72,0x91,0x6D,0x8F,0x23,0xC7,0xB2,0x86};
-
-uint32_t TCompileResp::read(::apache::thrift::protocol::TProtocol* iprot) {
-
-  uint32_t xfer = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TType ftype;
-  int16_t fid;
-
-  xfer += iprot->readStructBegin(fname);
-
-  using ::apache::thrift::protocol::TProtocolException;
-
-  bool isset_status = false;
-
-  while (true)
-  {
-    xfer += iprot->readFieldBegin(fname, ftype, fid);
-    if (ftype == ::apache::thrift::protocol::T_STOP) {
-      break;
-    }
-    switch (fid)
-    {
-      case 1:
-        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-          xfer += this->status.read(iprot);
-          isset_status = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 2:
-        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-          xfer += this->operationHandle.read(iprot);
-          this->__isset.operationHandle = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      default:
-        xfer += iprot->skip(ftype);
-        break;
-    }
-    xfer += iprot->readFieldEnd();
-  }
-
-  xfer += iprot->readStructEnd();
-
-  if (!isset_status)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
-  return xfer;
-}
-
-uint32_t TCompileResp::write(::apache::thrift::protocol::TProtocol* oprot) const {
-  uint32_t xfer = 0;
-  xfer += oprot->writeStructBegin("TCompileResp");
-
-  xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_STRUCT, 1);
-  xfer += this->status.write(oprot);
-  xfer += oprot->writeFieldEnd();
-
-  if (this->__isset.operationHandle) {
-    xfer += oprot->writeFieldBegin("operationHandle", ::apache::thrift::protocol::T_STRUCT, 2);
-    xfer += this->operationHandle.write(oprot);
-    xfer += oprot->writeFieldEnd();
-  }
-  xfer += oprot->writeFieldStop();
-  xfer += oprot->writeStructEnd();
-  return xfer;
-}
-
-void swap(TCompileResp &a, TCompileResp &b) {
-  using ::std::swap;
-  swap(a.status, b.status);
-  swap(a.operationHandle, b.operationHandle);
-  swap(a.__isset, b.__isset);
-}
-
-const char* TExecuteStatementReq::ascii_fingerprint = "FED75DB77E66D76EC1939A51FB0D96FA";
-const uint8_t TExecuteStatementReq::binary_fingerprint[16] = {0xFE,0xD7,0x5D,0xB7,0x7E,0x66,0xD7,0x6E,0xC1,0x93,0x9A,0x51,0xFB,0x0D,0x96,0xFA};
-
-uint32_t TExecuteStatementReq::read(::apache::thrift::protocol::TProtocol* iprot) {
-
-  uint32_t xfer = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TType ftype;
-  int16_t fid;
-
-  xfer += iprot->readStructBegin(fname);
-
-  using ::apache::thrift::protocol::TProtocolException;
-
-  bool isset_sessionHandle = false;
-  bool isset_statement = false;
-
-  while (true)
-  {
-    xfer += iprot->readFieldBegin(fname, ftype, fid);
-    if (ftype == ::apache::thrift::protocol::T_STOP) {
-      break;
-    }
-    switch (fid)
-    {
-      case 1:
-        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-          xfer += this->sessionHandle.read(iprot);
-          isset_sessionHandle = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 2:
-        if (ftype == ::apache::thrift::protocol::T_STRING) {
-          xfer += iprot->readString(this->statement);
-          isset_statement = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 3:
-        if (ftype == ::apache::thrift::protocol::T_MAP) {
-          {
-            this->confOverlay.clear();
-            uint32_t _size145;
-            ::apache::thrift::protocol::TType _ktype146;
-            ::apache::thrift::protocol::TType _vtype147;
-            xfer += iprot->readMapBegin(_ktype146, _vtype147, _size145);
-            uint32_t _i149;
-            for (_i149 = 0; _i149 < _size145; ++_i149)
-            {
-              std::string _key150;
-              xfer += iprot->readString(_key150);
-              std::string& _val151 = this->confOverlay[_key150];
-              xfer += iprot->readString(_val151);
-            }
-            xfer += iprot->readMapEnd();
-          }
-          this->__isset.confOverlay = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
       case 4:
         if (ftype == ::apache::thrift::protocol::T_BOOL) {
           xfer += iprot->readBool(this->runAsync);
@@ -4612,11 +4420,11 @@ uint32_t TExecuteStatementReq::write(::apache::thrift::protocol::TProtocol* opro
     xfer += oprot->writeFieldBegin("confOverlay", ::apache::thrift::protocol::T_MAP, 3);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->confOverlay.size()));
-      std::map<std::string, std::string> ::const_iterator _iter152;
-      for (_iter152 = this->confOverlay.begin(); _iter152 != this->confOverlay.end(); ++_iter152)
+      std::map<std::string, std::string> ::const_iterator _iter144;
+      for (_iter144 = this->confOverlay.begin(); _iter144 != this->confOverlay.end(); ++_iter144)
       {
-        xfer += oprot->writeString(_iter152->first);
-        xfer += oprot->writeString(_iter152->second);
+        xfer += oprot->writeString(_iter144->first);
+        xfer += oprot->writeString(_iter144->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -5238,14 +5046,14 @@ uint32_t TGetTablesReq::read(::apache::thrift::protocol::TProtocol* iprot) {
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->tableTypes.clear();
-            uint32_t _size153;
-            ::apache::thrift::protocol::TType _etype156;
-            xfer += iprot->readListBegin(_etype156, _size153);
-            this->tableTypes.resize(_size153);
-            uint32_t _i157;
-            for (_i157 = 0; _i157 < _size153; ++_i157)
+            uint32_t _size145;
+            ::apache::thrift::protocol::TType _etype148;
+            xfer += iprot->readListBegin(_etype148, _size145);
+            this->tableTypes.resize(_size145);
+            uint32_t _i149;
+            for (_i149 = 0; _i149 < _size145; ++_i149)
             {
-              xfer += iprot->readString(this->tableTypes[_i157]);
+              xfer += iprot->readString(this->tableTypes[_i149]);
             }
             xfer += iprot->readListEnd();
           }
@@ -5295,10 +5103,10 @@ uint32_t TGetTablesReq::write(::apache::thrift::protocol::TProtocol* oprot) cons
     xfer += oprot->writeFieldBegin("tableTypes", ::apache::thrift::protocol::T_LIST, 5);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->tableTypes.size()));
-      std::vector<std::string> ::const_iterator _iter158;
-      for (_iter158 = this->tableTypes.begin(); _iter158 != this->tableTypes.end(); ++_iter158)
+      std::vector<std::string> ::const_iterator _iter150;
+      for (_iter150 = this->tableTypes.begin(); _iter150 != this->tableTypes.end(); ++_iter150)
       {
-        xfer += oprot->writeString((*_iter158));
+        xfer += oprot->writeString((*_iter150));
       }
       xfer += oprot->writeListEnd();
     }
@@ -6027,9 +5835,9 @@ uint32_t TGetOperationStatusResp::read(::apache::thrift::protocol::TProtocol* ip
         break;
       case 2:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast159;
-          xfer += iprot->readI32(ecast159);
-          this->operationState = (TOperationState::type)ecast159;
+          int32_t ecast151;
+          xfer += iprot->readI32(ecast151);
+          this->operationState = (TOperationState::type)ecast151;
           this->__isset.operationState = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -6515,8 +6323,8 @@ void swap(TGetResultSetMetadataResp &a, TGetResultSetMetadataResp &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* TFetchResultsReq::ascii_fingerprint = "1B96A8C05BA9DD699FC8CD842240ABDE";
-const uint8_t TFetchResultsReq::binary_fingerprint[16] = {0x1B,0x96,0xA8,0xC0,0x5B,0xA9,0xDD,0x69,0x9F,0xC8,0xCD,0x84,0x22,0x40,0xAB,0xDE};
+const char* TFetchResultsReq::ascii_fingerprint = "B4CB1E4F8F8F4D50183DD372AD11753A";
+const uint8_t TFetchResultsReq::binary_fingerprint[16] = {0xB4,0xCB,0x1E,0x4F,0x8F,0x8F,0x4D,0x50,0x18,0x3D,0xD3,0x72,0xAD,0x11,0x75,0x3A};
 
 uint32_t TFetchResultsReq::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -6551,9 +6359,9 @@ uint32_t TFetchResultsReq::read(::apache::thrift::protocol::TProtocol* iprot) {
         break;
       case 2:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast160;
-          xfer += iprot->readI32(ecast160);
-          this->orientation = (TFetchOrientation::type)ecast160;
+          int32_t ecast152;
+          xfer += iprot->readI32(ecast152);
+          this->orientation = (TFetchOrientation::type)ecast152;
           isset_orientation = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -6563,6 +6371,14 @@ uint32_t TFetchResultsReq::read(::apache::thrift::protocol::TProtocol* iprot) {
         if (ftype == ::apache::thrift::protocol::T_I64) {
           xfer += iprot->readI64(this->maxRows);
           isset_maxRows = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_I16) {
+          xfer += iprot->readI16(this->fetchType);
+          this->__isset.fetchType = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -6601,6 +6417,11 @@ uint32_t TFetchResultsReq::write(::apache::thrift::protocol::TProtocol* oprot) c
   xfer += oprot->writeI64(this->maxRows);
   xfer += oprot->writeFieldEnd();
 
+  if (this->__isset.fetchType) {
+    xfer += oprot->writeFieldBegin("fetchType", ::apache::thrift::protocol::T_I16, 4);
+    xfer += oprot->writeI16(this->fetchType);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -6611,6 +6432,8 @@ void swap(TFetchResultsReq &a, TFetchResultsReq &b) {
   swap(a.operationHandle, b.operationHandle);
   swap(a.orientation, b.orientation);
   swap(a.maxRows, b.maxRows);
+  swap(a.fetchType, b.fetchType);
+  swap(a.__isset, b.__isset);
 }
 
 const char* TFetchResultsResp::ascii_fingerprint = "99C26CD71A5438BD7A817ACDDDF8C79B";

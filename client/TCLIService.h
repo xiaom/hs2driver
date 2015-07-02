@@ -18,7 +18,6 @@ class TCLIServiceIf {
   virtual void OpenSession(TOpenSessionResp& _return, const TOpenSessionReq& req) = 0;
   virtual void CloseSession(TCloseSessionResp& _return, const TCloseSessionReq& req) = 0;
   virtual void GetInfo(TGetInfoResp& _return, const TGetInfoReq& req) = 0;
-  virtual void Compile(TCompileResp& _return, const TCompileReq& req) = 0;
   virtual void ExecuteStatement(TExecuteStatementResp& _return, const TExecuteStatementReq& req) = 0;
   virtual void GetTypeInfo(TGetTypeInfoResp& _return, const TGetTypeInfoReq& req) = 0;
   virtual void GetCatalogs(TGetCatalogsResp& _return, const TGetCatalogsReq& req) = 0;
@@ -71,9 +70,6 @@ class TCLIServiceNull : virtual public TCLIServiceIf {
     return;
   }
   void GetInfo(TGetInfoResp& /* _return */, const TGetInfoReq& /* req */) {
-    return;
-  }
-  void Compile(TCompileResp& /* _return */, const TCompileReq& /* req */) {
     return;
   }
   void ExecuteStatement(TExecuteStatementResp& /* _return */, const TExecuteStatementReq& /* req */) {
@@ -445,114 +441,6 @@ class TCLIService_GetInfo_presult {
   TGetInfoResp* success;
 
   _TCLIService_GetInfo_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
-typedef struct _TCLIService_Compile_args__isset {
-  _TCLIService_Compile_args__isset() : req(false) {}
-  bool req;
-} _TCLIService_Compile_args__isset;
-
-class TCLIService_Compile_args {
- public:
-
-  TCLIService_Compile_args() {
-  }
-
-  virtual ~TCLIService_Compile_args() throw() {}
-
-  TCompileReq req;
-
-  _TCLIService_Compile_args__isset __isset;
-
-  void __set_req(const TCompileReq& val) {
-    req = val;
-  }
-
-  bool operator == (const TCLIService_Compile_args & rhs) const
-  {
-    if (!(req == rhs.req))
-      return false;
-    return true;
-  }
-  bool operator != (const TCLIService_Compile_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TCLIService_Compile_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class TCLIService_Compile_pargs {
- public:
-
-
-  virtual ~TCLIService_Compile_pargs() throw() {}
-
-  const TCompileReq* req;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _TCLIService_Compile_result__isset {
-  _TCLIService_Compile_result__isset() : success(false) {}
-  bool success;
-} _TCLIService_Compile_result__isset;
-
-class TCLIService_Compile_result {
- public:
-
-  TCLIService_Compile_result() {
-  }
-
-  virtual ~TCLIService_Compile_result() throw() {}
-
-  TCompileResp success;
-
-  _TCLIService_Compile_result__isset __isset;
-
-  void __set_success(const TCompileResp& val) {
-    success = val;
-  }
-
-  bool operator == (const TCLIService_Compile_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const TCLIService_Compile_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TCLIService_Compile_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _TCLIService_Compile_presult__isset {
-  _TCLIService_Compile_presult__isset() : success(false) {}
-  bool success;
-} _TCLIService_Compile_presult__isset;
-
-class TCLIService_Compile_presult {
- public:
-
-
-  virtual ~TCLIService_Compile_presult() throw() {}
-
-  TCompileResp* success;
-
-  _TCLIService_Compile_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -2315,9 +2203,6 @@ class TCLIServiceClient : virtual public TCLIServiceIf {
   void GetInfo(TGetInfoResp& _return, const TGetInfoReq& req);
   void send_GetInfo(const TGetInfoReq& req);
   void recv_GetInfo(TGetInfoResp& _return);
-  void Compile(TCompileResp& _return, const TCompileReq& req);
-  void send_Compile(const TCompileReq& req);
-  void recv_Compile(TCompileResp& _return);
   void ExecuteStatement(TExecuteStatementResp& _return, const TExecuteStatementReq& req);
   void send_ExecuteStatement(const TExecuteStatementReq& req);
   void recv_ExecuteStatement(TExecuteStatementResp& _return);
@@ -2384,7 +2269,6 @@ class TCLIServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_OpenSession(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_CloseSession(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetInfo(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_Compile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_ExecuteStatement(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetTypeInfo(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_GetCatalogs(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -2407,7 +2291,6 @@ class TCLIServiceProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["OpenSession"] = &TCLIServiceProcessor::process_OpenSession;
     processMap_["CloseSession"] = &TCLIServiceProcessor::process_CloseSession;
     processMap_["GetInfo"] = &TCLIServiceProcessor::process_GetInfo;
-    processMap_["Compile"] = &TCLIServiceProcessor::process_Compile;
     processMap_["ExecuteStatement"] = &TCLIServiceProcessor::process_ExecuteStatement;
     processMap_["GetTypeInfo"] = &TCLIServiceProcessor::process_GetTypeInfo;
     processMap_["GetCatalogs"] = &TCLIServiceProcessor::process_GetCatalogs;
@@ -2479,16 +2362,6 @@ class TCLIServiceMultiface : virtual public TCLIServiceIf {
       ifaces_[i]->GetInfo(_return, req);
     }
     ifaces_[i]->GetInfo(_return, req);
-    return;
-  }
-
-  void Compile(TCompileResp& _return, const TCompileReq& req) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->Compile(_return, req);
-    }
-    ifaces_[i]->Compile(_return, req);
     return;
   }
 

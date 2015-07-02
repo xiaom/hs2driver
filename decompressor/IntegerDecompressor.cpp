@@ -26,7 +26,7 @@ out_column) {
         case TTypeId::INT_TYPE:
             out_column.__isset.i32Val = true;
             out_column.i32Val.__set_nulls(in_column.nulls);
-            std::cerr << "Decompressor is activated"<< std::endl; 
+            std::cerr << "Decompressor is activated"<< std::endl;
             decode(in_column.enData, in_column.size, out_column.i32Val);
             break;
         default:
@@ -55,7 +55,7 @@ void IntegerDecompressor::decode(
 
 
 Decompressor* Decompressor::Create(const std::string& name){
-    if (name == "PIN") {
+    if (name == "snappy") {
          return new IntegerDecompressor();
     }
     else {

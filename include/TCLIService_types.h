@@ -25,7 +25,8 @@ struct TProtocolVersion {
     HIVE_CLI_SERVICE_PROTOCOL_V5 = 4,
     HIVE_CLI_SERVICE_PROTOCOL_V6 = 5,
     HIVE_CLI_SERVICE_PROTOCOL_V7 = 6,
-    HIVE_CLI_SERVICE_PROTOCOL_V8 = 7
+    HIVE_CLI_SERVICE_PROTOCOL_V8 = 7,
+    HIVE_CLI_SERVICE_PROTOCOL_V9 = 8
   };
 };
 
@@ -52,7 +53,9 @@ struct TTypeId {
     NULL_TYPE = 16,
     DATE_TYPE = 17,
     VARCHAR_TYPE = 18,
-    CHAR_TYPE = 19
+    CHAR_TYPE = 19,
+    INTERVAL_YEAR_MONTH_TYPE = 20,
+    INTERVAL_DAY_TIME_TYPE = 21
   };
 };
 
@@ -2416,119 +2419,6 @@ class TGetInfoResp {
 
 void swap(TGetInfoResp &a, TGetInfoResp &b);
 
-typedef struct _TCompileReq__isset {
-  _TCompileReq__isset() : confOverlay(false) {}
-  bool confOverlay;
-} _TCompileReq__isset;
-
-class TCompileReq {
- public:
-
-  static const char* ascii_fingerprint; // = "4CDA19909D21B7D9907F85E3387EAB27";
-  static const uint8_t binary_fingerprint[16]; // = {0x4C,0xDA,0x19,0x90,0x9D,0x21,0xB7,0xD9,0x90,0x7F,0x85,0xE3,0x38,0x7E,0xAB,0x27};
-
-  TCompileReq() : statement() {
-  }
-
-  virtual ~TCompileReq() throw() {}
-
-  TSessionHandle sessionHandle;
-  std::string statement;
-  std::map<std::string, std::string>  confOverlay;
-
-  _TCompileReq__isset __isset;
-
-  void __set_sessionHandle(const TSessionHandle& val) {
-    sessionHandle = val;
-  }
-
-  void __set_statement(const std::string& val) {
-    statement = val;
-  }
-
-  void __set_confOverlay(const std::map<std::string, std::string> & val) {
-    confOverlay = val;
-    __isset.confOverlay = true;
-  }
-
-  bool operator == (const TCompileReq & rhs) const
-  {
-    if (!(sessionHandle == rhs.sessionHandle))
-      return false;
-    if (!(statement == rhs.statement))
-      return false;
-    if (__isset.confOverlay != rhs.__isset.confOverlay)
-      return false;
-    else if (__isset.confOverlay && !(confOverlay == rhs.confOverlay))
-      return false;
-    return true;
-  }
-  bool operator != (const TCompileReq &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TCompileReq & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-void swap(TCompileReq &a, TCompileReq &b);
-
-typedef struct _TCompileResp__isset {
-  _TCompileResp__isset() : operationHandle(false) {}
-  bool operationHandle;
-} _TCompileResp__isset;
-
-class TCompileResp {
- public:
-
-  static const char* ascii_fingerprint; // = "02A075A0FF88D3A172916D8F23C7B286";
-  static const uint8_t binary_fingerprint[16]; // = {0x02,0xA0,0x75,0xA0,0xFF,0x88,0xD3,0xA1,0x72,0x91,0x6D,0x8F,0x23,0xC7,0xB2,0x86};
-
-  TCompileResp() {
-  }
-
-  virtual ~TCompileResp() throw() {}
-
-  TStatus status;
-  TOperationHandle operationHandle;
-
-  _TCompileResp__isset __isset;
-
-  void __set_status(const TStatus& val) {
-    status = val;
-  }
-
-  void __set_operationHandle(const TOperationHandle& val) {
-    operationHandle = val;
-    __isset.operationHandle = true;
-  }
-
-  bool operator == (const TCompileResp & rhs) const
-  {
-    if (!(status == rhs.status))
-      return false;
-    if (__isset.operationHandle != rhs.__isset.operationHandle)
-      return false;
-    else if (__isset.operationHandle && !(operationHandle == rhs.operationHandle))
-      return false;
-    return true;
-  }
-  bool operator != (const TCompileResp &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TCompileResp & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-void swap(TCompileResp &a, TCompileResp &b);
-
 typedef struct _TExecuteStatementReq__isset {
   _TExecuteStatementReq__isset() : confOverlay(false), runAsync(true) {}
   bool confOverlay;
@@ -3803,14 +3693,18 @@ class TGetResultSetMetadataResp {
 
 void swap(TGetResultSetMetadataResp &a, TGetResultSetMetadataResp &b);
 
+typedef struct _TFetchResultsReq__isset {
+  _TFetchResultsReq__isset() : fetchType(true) {}
+  bool fetchType;
+} _TFetchResultsReq__isset;
 
 class TFetchResultsReq {
  public:
 
-  static const char* ascii_fingerprint; // = "1B96A8C05BA9DD699FC8CD842240ABDE";
-  static const uint8_t binary_fingerprint[16]; // = {0x1B,0x96,0xA8,0xC0,0x5B,0xA9,0xDD,0x69,0x9F,0xC8,0xCD,0x84,0x22,0x40,0xAB,0xDE};
+  static const char* ascii_fingerprint; // = "B4CB1E4F8F8F4D50183DD372AD11753A";
+  static const uint8_t binary_fingerprint[16]; // = {0xB4,0xCB,0x1E,0x4F,0x8F,0x8F,0x4D,0x50,0x18,0x3D,0xD3,0x72,0xAD,0x11,0x75,0x3A};
 
-  TFetchResultsReq() : orientation((TFetchOrientation::type)0), maxRows(0) {
+  TFetchResultsReq() : orientation((TFetchOrientation::type)0), maxRows(0), fetchType(0) {
     orientation = (TFetchOrientation::type)0;
 
   }
@@ -3820,6 +3714,9 @@ class TFetchResultsReq {
   TOperationHandle operationHandle;
   TFetchOrientation::type orientation;
   int64_t maxRows;
+  int16_t fetchType;
+
+  _TFetchResultsReq__isset __isset;
 
   void __set_operationHandle(const TOperationHandle& val) {
     operationHandle = val;
@@ -3833,6 +3730,11 @@ class TFetchResultsReq {
     maxRows = val;
   }
 
+  void __set_fetchType(const int16_t val) {
+    fetchType = val;
+    __isset.fetchType = true;
+  }
+
   bool operator == (const TFetchResultsReq & rhs) const
   {
     if (!(operationHandle == rhs.operationHandle))
@@ -3840,6 +3742,10 @@ class TFetchResultsReq {
     if (!(orientation == rhs.orientation))
       return false;
     if (!(maxRows == rhs.maxRows))
+      return false;
+    if (__isset.fetchType != rhs.__isset.fetchType)
+      return false;
+    else if (__isset.fetchType && !(fetchType == rhs.fetchType))
       return false;
     return true;
   }

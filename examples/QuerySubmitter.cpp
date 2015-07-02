@@ -42,7 +42,7 @@ int main(int argc, const char *argv[]) {
             ("help", "Help on args options")
             ("host", po::value<std::string>(&host)->default_value("localhost"), "HiveServer2 hostname/IP address")
             ("port", po::value<int>(&port)->default_value(10000), "HiveServer2 port number")
-            ("compressor", po::value<std::string>(&compressor)->default_value("PIN"), "Compressor name")
+            ("compressor", po::value<std::string>(&compressor)->default_value("snappy"), "Compressor name")
             ("query", po::value<std::string>(&query)->default_value("show tables"), "Queries, seperated by semi-colon");
 
         po::variables_map vm;

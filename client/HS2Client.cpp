@@ -122,7 +122,7 @@ bool HS2ClientImpl::OpenSession() {
 
     // @todo: query system table to get hive version and set protocol properly
     openSessionReq.__set_client_protocol(
-            TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V8);
+            TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V9);
 
     // @todo: json negotiation
     // @todo: validate json file format
